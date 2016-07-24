@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "0.93"
+#define PLUGIN_VERSION "0.94.0"
 
 public Plugin:myinfo = {
 	name		= "TF2IDB",
@@ -8,6 +8,7 @@ public Plugin:myinfo = {
 	url		 	= "http://skial.com"
 };
 
+#include <tf2>
 #include <tf2idb>
 
 public APLRes:AskPluginLoad2(Handle:hPlugin, bool:bLateLoad, String:sError[], iErrorSize) {
@@ -26,13 +27,29 @@ public APLRes:AskPluginLoad2(Handle:hPlugin, bool:bLateLoad, String:sError[], iE
 	CreateNative("TF2IDB_FindItemCustom", Native_FindItemCustom);
 	CreateNative("TF2IDB_ItemHasAttribute", Native_ItemHasAttribute);
 
+	CreateNative("TF2IDB_CustomQuery", Native_CustomQuery);
+
+	CreateNative("TF2IDB_IsValidAttributeID", Native_IsValidAttributeID);
+	CreateNative("TF2IDB_GetAttributeName", Native_GetAttributeName);
+	CreateNative("TF2IDB_GetAttributeClass", Native_GetAttributeClass);
+	CreateNative("TF2IDB_GetAttributeType", Native_GetAttributeType);
+	CreateNative("TF2IDB_GetAttributeDescString", Native_GetAttributeDescString);
+	CreateNative("TF2IDB_GetAttributeDescFormat", Native_GetAttributeDescFormat);
+	CreateNative("TF2IDB_GetAttributeEffectType", Native_GetAttributeEffectType);
+	CreateNative("TF2IDB_GetAttributeArmoryDesc", Native_GetAttributeArmoryDesc);
+	CreateNative("TF2IDB_GetAttributeItemTag", Native_GetAttributeItemTag);
+	CreateNative("TF2IDB_GetAttributeProperties", Native_GetAttributeProperties);
+
+	CreateNative("TF2IDB_GetQualityName", Native_GetQualityName);
+	CreateNative("TF2IDB_GetQualityByName", Native_GetQualityByName);
+
 	RegPluginLibrary("tf2idb");
 	return APLRes_Success;
 }
 
 new Handle:g_db;
 
-new Handle:g_statement_IsValidItemID;
+//new Handle:g_statement_IsValidItemID;
 new Handle:g_statement_GetItemClass;
 new Handle:g_statement_GetItemName;
 new Handle:g_statement_GetItemSlotName;
@@ -43,6 +60,17 @@ new Handle:g_statement_GetItemEquipRegions;
 new Handle:g_statement_ListParticles;
 new Handle:g_statement_DoRegionsConflict;
 new Handle:g_statement_ItemHasAttribute;
+new Handle:g_statement_GetItemSlotNameByClass;
+
+//new Handle:g_statement_IsValidAttributeID;
+new Handle:g_statement_GetAttributeName;
+new Handle:g_statement_GetAttributeClass;
+new Handle:g_statement_GetAttributeType;
+new Handle:g_statement_GetAttributeDescString;
+new Handle:g_statement_GetAttributeDescFormat;
+new Handle:g_statement_GetAttributeEffectType;
+new Handle:g_statement_GetAttributeArmoryDesc;
+new Handle:g_statement_GetAttributeItemTag;
 
 new Handle:g_slot_mappings;
 new Handle:g_quality_mappings;
@@ -53,6 +81,13 @@ new Handle:g_slot_cache;
 new Handle:g_minlevel_cache;
 new Handle:g_maxlevel_cache;
 
+#define NUM_ATT_CACHE_FIELDS 5
+new Handle:g_attribute_cache;
+
+new String:g_class_mappings[][] = {
+	"unknown", "scout", "sniper", "soldier", "demoman", "medic", "heavy", "pyro", "spy", "engineer"
+};
+
 public OnPluginStart() {
 	CreateConVar("sm_tf2idb_version", PLUGIN_VERSION, "TF2IDB version", FCVAR_PLUGIN|FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_SPONLY);
 
@@ -62,8 +97,8 @@ public OnPluginStart() {
 		SetFailState(error);
 
 	#define PREPARE_STATEMENT(%1,%2) %1 = SQL_PrepareQuery(g_db, %2, error, sizeof(error)); if(%1 == INVALID_HANDLE) SetFailState(error);
-	
-	PREPARE_STATEMENT(g_statement_IsValidItemID, "SELECT id FROM tf2idb_item WHERE id=?")
+
+//	PREPARE_STATEMENT(g_statement_IsValidItemID, "SELECT id FROM tf2idb_item WHERE id=?")
 	PREPARE_STATEMENT(g_statement_GetItemClass, "SELECT class FROM tf2idb_item WHERE id=?")
 	PREPARE_STATEMENT(g_statement_GetItemName, "SELECT name FROM tf2idb_item WHERE id=?")
 	PREPARE_STATEMENT(g_statement_GetItemSlotName, "SELECT slot FROM tf2idb_item WHERE id=?")
@@ -74,6 +109,17 @@ public OnPluginStart() {
 	PREPARE_STATEMENT(g_statement_ListParticles, "SELECT id FROM tf2idb_particles")
 	PREPARE_STATEMENT(g_statement_DoRegionsConflict, "SELECT a.name FROM tf2idb_equip_conflicts a JOIN tf2idb_equip_conflicts b ON a.name=b.name WHERE a.region=? AND b.region=?")
 	PREPARE_STATEMENT(g_statement_ItemHasAttribute, "SELECT attribute FROM tf2idb_item a JOIN tf2idb_item_attributes b ON a.id=b.id WHERE a.id=? AND attribute=?")
+	PREPARE_STATEMENT(g_statement_GetItemSlotNameByClass, "SELECT slot FROM tf2idb_class WHERE id=? AND class=?")
+
+//	PREPARE_STATEMENT(g_statement_IsValidAttributeID, "SELECT id FROM tf2idb_attributes WHERE id=?")
+	PREPARE_STATEMENT(g_statement_GetAttributeName, "SELECT name FROM tf2idb_attributes WHERE id=?")
+	PREPARE_STATEMENT(g_statement_GetAttributeClass, "SELECT attribute_class FROM tf2idb_attributes WHERE id=?")
+	PREPARE_STATEMENT(g_statement_GetAttributeType, "SELECT attribute_type FROM tf2idb_attributes WHERE id=?")
+	PREPARE_STATEMENT(g_statement_GetAttributeDescString, "SELECT description_string FROM tf2idb_attributes WHERE id=?")
+	PREPARE_STATEMENT(g_statement_GetAttributeDescFormat, "SELECT description_format FROM tf2idb_attributes WHERE id=?")
+	PREPARE_STATEMENT(g_statement_GetAttributeEffectType, "SELECT effect_type FROM tf2idb_attributes WHERE id=?")
+	PREPARE_STATEMENT(g_statement_GetAttributeArmoryDesc, "SELECT armory_desc FROM tf2idb_attributes WHERE id=?")
+	PREPARE_STATEMENT(g_statement_GetAttributeItemTag, "SELECT apply_tag_to_item_definition FROM tf2idb_attributes WHERE id=?")
 
 	g_slot_mappings = CreateTrie();
 	SetTrieValue(g_slot_mappings, "primary", TF2ItemSlot_Primary);
@@ -87,17 +133,23 @@ public OnPluginStart() {
 	SetTrieValue(g_slot_mappings, "taunt", TF2ItemSlot_Taunt);
 	SetTrieValue(g_slot_mappings, "action", TF2ItemSlot_Action);
 
-	g_quality_mappings = CreateTrie();
-	SetTrieValue(g_quality_mappings, "normal", TF2ItemQuality_Normal);
-	SetTrieValue(g_quality_mappings, "rarity4", TF2ItemQuality_Rarity4);
-	SetTrieValue(g_quality_mappings, "strange", TF2ItemQuality_Strange);
-	SetTrieValue(g_quality_mappings, "unique", TF2ItemQuality_Unique);
+	g_quality_mappings = CreateQualityMappings();
+
+	if(g_quality_mappings == INVALID_HANDLE) {
+		g_quality_mappings = CreateArray(TF2IDB_ITEMQUALITY_LENGTH);
+		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Normal, "normal");
+		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Rarity4, "rarity4");
+		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Strange, "strange");
+		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Unique, "unique");
+	}
 
 	g_id_cache = CreateTrie();
 	g_class_cache = CreateTrie();
 	g_slot_cache = CreateTrie();
 	g_minlevel_cache = CreateTrie();
 	g_maxlevel_cache = CreateTrie();
+
+	g_attribute_cache = CreateTrie();
 
 	PrepareCache();
 
@@ -109,7 +161,7 @@ public OnPluginStart() {
 	for(new i=0;i<attributes;i++) {
 		PrintToServer("aid %i value %f", aids[i], values[i]);
 	}
-	
+
 	PrintItem(43);
 	new Handle:paints = TF2IDB_FindItemCustom("SELECT id FROM tf2idb_item WHERE tool_type='paint_can'");
 
@@ -117,6 +169,44 @@ public OnPluginStart() {
 		PrintToServer("paint %i", GetArrayCell(paints, i));
 	}
 	*/
+}
+
+Handle:CreateQualityMappings() {
+
+	decl String:strFilePath[PLATFORM_MAX_PATH] = "scripts/items/items_game.txt";
+	if(!FileExists(strFilePath, true)) {
+		return INVALID_HANDLE;
+	}
+
+	new Handle:hItemSchema = CreateKeyValues("items_game");
+	if(!FileToKeyValues(hItemSchema, strFilePath)) {
+		CloseHandle(hItemSchema);
+		return INVALID_HANDLE;
+	}
+	KvRewind(hItemSchema);
+	new Handle:mappings = CreateArray(TF2IDB_ITEMQUALITY_LENGTH, _:TF2ItemQuality);	//size of the quality enum
+	new size = GetArraySize(mappings);
+	decl String:strQualityName[TF2IDB_ITEMQUALITY_LENGTH];
+
+	if(KvJumpToKey(hItemSchema, "qualities", false)) {
+		if(KvGotoFirstSubKey(hItemSchema)) {
+			do {
+				if (KvGetSectionName(hItemSchema, strQualityName, sizeof(strQualityName))) {
+					new val = KvGetNum(hItemSchema, "value", -1);
+					if (val >= size) {	//in case valve adds qualities
+						ResizeArray(mappings, val+1);
+						size = val+1;
+					}
+					if (val >= 0) {
+						SetArrayString(mappings, val, strQualityName);
+					}
+				}
+			}
+			while(KvGotoNextKey(hItemSchema));
+		}
+	}
+	CloseHandle(hItemSchema);
+	return mappings;
 }
 
 PrepareCache() {
@@ -138,6 +228,19 @@ PrepareCache() {
 		SetTrieValue(g_maxlevel_cache, id, max_level);
 	}
 	CloseHandle(queryHandle);
+
+	queryHandle = SQL_Query(g_db, "SELECT id,hidden,stored_as_integer,is_set_bonus,is_user_generated,can_affect_recipe_component_name FROM tf2idb_attributes");
+	while(SQL_FetchRow(queryHandle)) {
+		new String:id[16];
+		new values[NUM_ATT_CACHE_FIELDS] = { -1, ... };
+		SQL_FetchString(queryHandle, 0, id, sizeof(id));
+		for(new i = 0; i < NUM_ATT_CACHE_FIELDS; i++) {
+			if(!SQL_IsFieldNull(queryHandle, i)) {
+				values[i] = SQL_FetchInt(queryHandle, i+1);
+			}
+		}
+		SetTrieArray(g_attribute_cache, id, values, NUM_ATT_CACHE_FIELDS);
+	}
 }
 
 stock PrintItem(id) {
@@ -174,7 +277,7 @@ public Native_IsValidItemID(Handle:hPlugin, nParams) {
 public Native_GetItemClass(Handle:hPlugin, nParams) {
 	new id = GetNativeCell(1);
 	new size = GetNativeCell(3);
-	
+
 	decl String:strId[16];
 	IntToString(id, strId, sizeof(strId));
 	decl String:class[size];
@@ -217,10 +320,27 @@ public Native_GetItemName(Handle:hPlugin, nParams) {
 public Native_GetItemSlotName(Handle:hPlugin, nParams) {
 	new id = GetNativeCell(1);
 	new size = GetNativeCell(3);
-	
+	new TFClassType:classType = (nParams >= 4) ? GetNativeCell(4) : TFClass_Unknown;
+
+	decl String:slot[size];
+
+	if(classType != TFClass_Unknown) {
+		SQL_BindParamInt(g_statement_GetItemSlotNameByClass, 0, id);
+		SQL_BindParamString(g_statement_GetItemSlotNameByClass, 1, g_class_mappings[classType], false);
+
+		SQL_Execute(g_statement_GetItemSlotNameByClass);
+
+		while(SQL_FetchRow(g_statement_GetItemSlotNameByClass)) {
+			if(!SQL_IsFieldNull(g_statement_GetItemSlotNameByClass, 0)) {
+				SQL_FetchString(g_statement_GetItemSlotNameByClass, 0, slot, size);
+				SetNativeString(2, slot, size);
+				return true;
+			}
+		}
+	}
+
 	decl String:strId[16];
 	IntToString(id, strId, sizeof(strId));
-	decl String:slot[size];
 
 	if(GetTrieString(g_slot_cache, strId, slot, size)) {
 		SetNativeString(2, slot, size);
@@ -245,13 +365,15 @@ public Native_GetItemSlotName(Handle:hPlugin, nParams) {
 public Native_GetItemSlot(Handle:hPlugin, nParams) {
 	new id = GetNativeCell(1);
 	decl String:slotString[16];
-	if(TF2IDB_GetItemSlotName(id, slotString, sizeof(slotString))) {
+	new TFClassType:classType = (nParams >= 2) ? GetNativeCell(2) : TFClass_Unknown;
+
+	if(TF2IDB_GetItemSlotName(id, slotString, sizeof(slotString), classType)) {
 		new TF2ItemSlot:slot;
 		if(GetTrieValue(g_slot_mappings, slotString, slot)) {
 			return _:slot;
 		}
 	}
-	return _:0;
+	return -1;
 }
 
 public Native_GetItemQualityName(Handle:hPlugin, nParams) {
@@ -272,19 +394,17 @@ public Native_GetItemQualityName(Handle:hPlugin, nParams) {
 public Native_GetItemQuality(Handle:hPlugin, nParams) {
 	new id = GetNativeCell(1);
 	decl String:qualityString[16];
+	new TF2ItemQuality:quality = TF2ItemQuality_Normal;
 	if(TF2IDB_GetItemSlotName(id, qualityString, sizeof(qualityString))) {
-		new TF2ItemQuality:quality;
-		if(GetTrieValue(g_quality_mappings, qualityString, quality)) {
-			return _:quality;
-		}
+		quality = GetQualityByName(qualityString);
 	}
-	return _:TF2ItemQuality_Normal;
+	return _:(quality > TF2ItemQuality_Normal ? quality : TF2ItemQuality_Normal);
 }
 
 public Native_GetItemLevels(Handle:hPlugin, nParams) {
 	new id = GetNativeCell(1);
 	decl String:strId[16];
-	IntToString(id, strId, sizeof(strId));	
+	IntToString(id, strId, sizeof(strId));
 	new min,max;
 	new bool:exists = GetTrieValue(g_minlevel_cache, strId, min);
 	GetTrieValue(g_maxlevel_cache, strId, max);
@@ -392,6 +512,57 @@ public Native_FindItemCustom(Handle:hPlugin, nParams) {
 	return _:output;
 }
 
+public Native_CustomQuery(Handle:hPlugin, nParams) {
+	new length;
+	GetNativeStringLength(1, length);
+	new String:query[length+1];
+	GetNativeString(1, query, length+1);
+	new String:error[256];
+	new Handle:queryHandle = SQL_PrepareQuery(g_db, query, error, sizeof(error));
+	new ArrayList:arguments = ArrayList:GetNativeCell(2);
+	new argSize = GetArraySize(arguments);
+	new maxlen = GetNativeCell(3);
+	new String:buf[maxlen];
+	for(new i = 0; i < argSize; i++) {
+		GetArrayString(arguments, i, buf, maxlen);
+		SQL_BindParamString(queryHandle, i, buf, true);
+	}
+	if(SQL_Execute(queryHandle)) {
+		Handle resultHandle = CloneHandle(queryHandle, hPlugin);
+		CloseHandle(queryHandle);
+		return _:resultHandle;
+	}
+	return _:INVALID_HANDLE;
+
+/*	new numFields = SQL_GetFieldCount(queryHandle);
+	if(numFields <= 0) {
+		return _:INVALID_HANDLE;
+	}
+	new Handle:results[numFields];
+	for(new i = 0; i < numFields; i++) {
+		new Handle:temp = CreateArray(maxlen);
+		results[i] = CloneHandle(temp, hPlugin);
+		CloseHandle(temp);
+		SQL_FieldNumToName(queryHandle, i, buf, maxlen);
+		PushArrayString(results[i], buf);
+	}
+	while(SQL_FetchRow(queryHandle)) {
+		for(new i = 0; i < numFields; i++) {
+			SQL_FetchString(queryHandle, i, buf, maxlen);
+			PushArrayString(results[i], buf);
+		}
+	}
+	new Handle:temp = CreateArray();
+	new Handle:retVal = CloneHandle(temp, hPlugin);
+	CloseHandle(temp);
+	PushArrayCell(retVal, GetArraySize(results[0]));
+	for(new i = 0; i < numFields; i++) {
+		PushArrayCell(retVal, results[i]);
+	}
+	return _:retVal;
+*/
+}
+
 public Native_ItemHasAttribute(Handle:hPlugin, nParams) {
 	new id = GetNativeCell(1);
 	new aid = GetNativeCell(2);
@@ -404,4 +575,137 @@ public Native_ItemHasAttribute(Handle:hPlugin, nParams) {
 		return SQL_GetRowCount(g_statement_ItemHasAttribute) > 0;
 	}
 	return false;
+}
+
+public Native_IsValidAttributeID(Handle:hPlugin, nParams) {
+	new id = GetNativeCell(1);
+	decl String:strId[16];
+	IntToString(id, strId, sizeof(strId));
+	new junk[NUM_ATT_CACHE_FIELDS];
+	return GetTrieArray(g_attribute_cache, strId, junk, NUM_ATT_CACHE_FIELDS);
+}
+
+stock bool:GetStatementStringForID(Handle:statement, id, String:buf[], size) {
+	SQL_BindParamInt(statement, 0, id);
+	SQL_Execute(statement);
+	if(SQL_FetchRow(statement)) {
+		SQL_FetchString(statement, 0, buf, size);
+		return true;
+	}
+	return false;
+}
+public Native_GetAttributeName(Handle:hPlugin, nParams) {
+	new id = GetNativeCell(1);
+	new size = GetNativeCell(3);
+	decl String:buf[size+1];
+	if(GetStatementStringForID(g_statement_GetAttributeName, id, buf, size)) {
+		SetNativeString(2, buf, size);
+		return true;
+	}
+	return false;
+}
+public Native_GetAttributeClass(Handle:hPlugin, nParams) {
+	new id = GetNativeCell(1);
+	new size = GetNativeCell(3);
+	decl String:buf[size+1];
+	if(GetStatementStringForID(g_statement_GetAttributeClass, id, buf, size)) {
+		SetNativeString(2, buf, size);
+		return true;
+	}
+	return false;
+}
+public Native_GetAttributeType(Handle:hPlugin, nParams) {
+	new id = GetNativeCell(1);
+	new size = GetNativeCell(3);
+	decl String:buf[size+1];
+	if(GetStatementStringForID(g_statement_GetAttributeType, id, buf, size)) {
+		SetNativeString(2, buf, size);
+		return true;
+	}
+	return false;
+}
+public Native_GetAttributeDescString(Handle:hPlugin, nParams) {
+	new id = GetNativeCell(1);
+	new size = GetNativeCell(3);
+	decl String:buf[size+1];
+	if(GetStatementStringForID(g_statement_GetAttributeDescString, id, buf, size)) {
+		SetNativeString(2, buf, size);
+		return true;
+	}
+	return false;
+}
+public Native_GetAttributeDescFormat(Handle:hPlugin, nParams) {
+	new id = GetNativeCell(1);
+	new size = GetNativeCell(3);
+	decl String:buf[size+1];
+	if(GetStatementStringForID(g_statement_GetAttributeDescFormat, id, buf, size)) {
+		SetNativeString(2, buf, size);
+		return true;
+	}
+	return false;
+}
+public Native_GetAttributeEffectType(Handle:hPlugin, nParams) {
+	new id = GetNativeCell(1);
+	new size = GetNativeCell(3);
+	decl String:buf[size+1];
+	if(GetStatementStringForID(g_statement_GetAttributeEffectType, id, buf, size)) {
+		SetNativeString(2, buf, size);
+		return true;
+	}
+	return false;
+}
+public Native_GetAttributeArmoryDesc(Handle:hPlugin, nParams) {
+	new id = GetNativeCell(1);
+	new size = GetNativeCell(3);
+	decl String:buf[size+1];
+	if(GetStatementStringForID(g_statement_GetAttributeArmoryDesc, id, buf, size)) {
+		SetNativeString(2, buf, size);
+		return true;
+	}
+	return false;
+}
+public Native_GetAttributeItemTag(Handle:hPlugin, nParams) {
+	new id = GetNativeCell(1);
+	new size = GetNativeCell(3);
+	decl String:buf[size+1];
+	if(GetStatementStringForID(g_statement_GetAttributeItemTag, id, buf, size)) {
+		SetNativeString(2, buf, size);
+		return true;
+	}
+	return false;
+}
+public Native_GetAttributeProperties(Handle:hPlugin, nParams) {
+	new id = GetNativeCell(1);
+	decl String:strId[16];
+	IntToString(id, strId, sizeof(strId));
+	new values[NUM_ATT_CACHE_FIELDS];
+	if(GetTrieArray(g_attribute_cache, strId, values, NUM_ATT_CACHE_FIELDS)) {
+		for(new i = 0; i < NUM_ATT_CACHE_FIELDS; i++) {
+			SetNativeCellRef(i+2, values[i]);
+		}
+		return true;
+	}
+	return false;
+}
+
+stock TF2ItemQuality:GetQualityByName(const String:strSearch[]) {
+	if(strlen(strSearch) == 0) {
+		return TF2ItemQuality:-1;
+	}
+	return TF2ItemQuality:FindStringInArray(g_quality_mappings, strSearch);
+}
+public Native_GetQualityByName(Handle:hPlugin, nParams) {
+	decl String:strQualityName[TF2IDB_ITEMQUALITY_LENGTH+1];
+	GetNativeString(1, strQualityName, TF2IDB_ITEMQUALITY_LENGTH);
+	return _:GetQualityByName(strQualityName);
+}
+public Native_GetQualityName(Handle:hPlugin, nParams) {
+	new quality = GetNativeCell(1);
+	new length = GetNativeCell(3);
+	decl String:strQualityName[length+1];
+	if(GetArrayString(g_quality_mappings, quality, strQualityName, length) <= 0) {
+		return false;
+	}
+	SetNativeString(2, strQualityName, length);
+	return true;
 }
