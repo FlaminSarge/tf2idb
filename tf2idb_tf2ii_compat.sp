@@ -1568,8 +1568,6 @@ public Native_FindItemsIDsByCond( Handle:hPlugin, nParams )
 {
 	Error( ERROR_LOG|ERROR_NOPRINT, SP_ERROR_NATIVE, "Deprecated function. Use TF2II_FindItems instead." );
 
-	new Handle:hResults = CreateArray();
-
 	decl String:strClass[64], String:strSlot[64], String:strTool[64];
 	GetNativeString( 1, strClass, sizeof(strClass) );
 	new iSlot = GetNativeCell(2);
@@ -1589,6 +1587,7 @@ public Native_FindItemsIDsByCond( Handle:hPlugin, nParams )
 	}
 
 	if( strlen(strSlot) <= 0 && iSlot > -1 )
+	{
 		switch( TF2ItemSlot:iSlot )
 		{
 			case TF2ItemSlot_Primary:	strcopy( strSlot, sizeof(strSlot), "primary" );
@@ -1601,53 +1600,22 @@ public Native_FindItemsIDsByCond( Handle:hPlugin, nParams )
 			case TF2ItemSlot_Misc:		strcopy( strSlot, sizeof(strSlot), "misc" );
 			case TF2ItemSlot_Action:	strcopy( strSlot, sizeof(strSlot), "action" );
 		}
-
-	decl String:strBuffer[128];
-	new iItemDefID, nCells = GetArraySize( g_hItemData ), Handle:hData;
-	for( new i = 0; i < nCells; i++ )
-	{
-		iItemDefID = -1;
-		hData = INVALID_HANDLE;
-
-		hData = Handle:GetArrayCell( g_hItemData, i );
-		if( hData != INVALID_HANDLE )
-			iItemDefID = GetArrayCell( hData, _:ItemData_DefinitionID );
-
-		if( 0 <= iItemDefID <= GetMaxItemID() )
-		{
-			if( strlen(strSlot) > 0 && !( ItemData_GetString( iItemDefID, ItemData_Slot, strBuffer, sizeof(strBuffer) ) && strcmp( strSlot, strBuffer, false ) == 0 ) )
-				continue;
-			if( strlen(strClass) > 0 && !( ItemData_GetString( iItemDefID, ItemData_ClassName, strBuffer, sizeof(strBuffer) ) && strcmp( strClass, strBuffer, false ) == 0 ) )
-				continue;
-			if( strlen(strTool) > 0 && !( ItemData_GetString( iItemDefID, ItemData_Tool, strBuffer, sizeof(strBuffer) ) && strcmp( strTool, strBuffer, false ) == 0 ) )
-				continue;
-			if( iUsedByClass > TF2II_CLASS_NONE && !( iUsedByClass & ItemData_GetCell( iItemDefID, ItemData_UsedBy ) ) )
-				continue;
-			PushArrayCell( hResults, iItemDefID );
-		}
 	}
-
-	Call_StartForward( hForward_OnFindItems );
-	Call_PushString( strClass );
-	Call_PushString( strSlot );
-	Call_PushCell( iUsedByClass );
-	Call_PushString( strTool );
-	Call_PushCellRef( hResults );
-	Call_Finish();
-
-	new Handle:hReturn = CloneHandle( hResults, hPlugin );
-	CloseHandle( hResults );
-	return _:hReturn;
+	return _:Internal_FindItems(hPlugin, strClass, strSlot, iUsedByClass, strTool);
 }
 
 public Native_FindItems( Handle:hPlugin, nParams )
 {
-	char classes[9][32] = {"scout", "sniper", "soldier", "demoman", "medic", "heavy", "pyro", "spy", "engineer"};
 	decl String:strClass[64], String:strSlot[64], String:strTool[64];
 	GetNativeString( 1, strClass, sizeof(strClass) );
 	GetNativeString( 2, strSlot, sizeof(strSlot) );
 	new iUsedByClass = GetNativeCell(3);
 	GetNativeString( 4, strTool, sizeof(strTool) );
+	return _:Internal_FindItems(hPlugin, strClass, strSlot, iUsedByClass, strTool);
+}
+stock Handle:Internal_FindItems(Handle:hPlugin, String:strClass[], String:strSlot[], iUsedByClass, String:strTool[])
+{
+	char classes[9][32] = {"scout", "sniper", "soldier", "demoman", "medic", "heavy", "pyro", "spy", "engineer"};
 	int paramCount = 0;
 	if (strClass[0])
 	{
@@ -1716,7 +1684,7 @@ public Native_FindItems( Handle:hPlugin, nParams )
 
 	new Handle:ret = CloneHandle(hResults, hPlugin);
 	CloseHandle(hResults);
-	return _:ret;
+	return ret;
 }
 public Native_ListEffects( Handle:hPlugin, nParams )
 {
