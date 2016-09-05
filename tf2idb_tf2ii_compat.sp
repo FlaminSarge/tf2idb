@@ -132,10 +132,7 @@ new Handle:hForward_ItemSchemaUpdated = INVALID_HANDLE;
 new Handle:hForward_OnSearchCommand = INVALID_HANDLE;
 new Handle:hForward_OnFindItems = INVALID_HANDLE;
 
-new Handle:g_hItemData = INVALID_HANDLE;
-new Handle:g_hItemDataKeys = INVALID_HANDLE;
-new Handle:g_hAttribData = INVALID_HANDLE;
-new Handle:g_hAttribDataKeys = INVALID_HANDLE;
+new Handle:g_hItemProperties = INVALID_HANDLE;
 
 
 //////////////////////
@@ -183,10 +180,10 @@ public APLRes:AskPluginLoad2(Handle:hPlugin, bool:bLateLoad, String:sError[], iE
 	CreateNative( "TF2II_AttribStoredAsInteger", Native_AttribStoredAsInteger );
 	CreateNative( "TF2II_AttribHasProperty", Native_AttribHasProperty );
 
-	CreateNative( "TF2II_GetItemKeyValues", Native_GetItemKeyValues );
-	CreateNative( "TF2II_GetItemKey", Native_GetItemKey );
-	CreateNative( "TF2II_GetItemKeyFloat", Native_GetItemKeyFloat );
-	CreateNative( "TF2II_GetItemKeyString", Native_GetItemKeyString );
+	CreateNative( "TF2II_GetItemKeyValues", Native_UnsupportedFunction );
+	CreateNative( "TF2II_GetItemKey", Native_UnsupportedFunction );
+	CreateNative( "TF2II_GetItemKeyFloat", Native_UnsupportedFunction );
+	CreateNative( "TF2II_GetItemKeyString", Native_UnsupportedFunction );
 	CreateNative( "TF2II_GetAttribKeyValues", Native_GetAttribKeyValues );
 	CreateNative( "TF2II_GetAttribKey", Native_GetAttribKey );
 	CreateNative( "TF2II_GetAttribKeyFloat", Native_GetAttribKeyFloat );
@@ -1000,7 +997,7 @@ public OnConVarChanged( Handle:hConVar, const String:strOldValue[], const String
 /* Private functions */
 ///////////////////////
 
-ReloadConfigs()
+stock ReloadConfigs()
 {
 	decl String:strBuffer[128];
 
@@ -1014,6 +1011,9 @@ ReloadConfigs()
 		KeyValuesToFile( hItemConfig, strFilePath );
 		CloseHandle( hItemConfig );
 		return;
+	}
+	if (g_hItemProperties == INVALID_HANDLE) {
+		g_hItemProperties = CreateTrie();
 	}
 
 	FileToKeyValues( hItemConfig, strFilePath );
@@ -1031,7 +1031,7 @@ ReloadConfigs()
 			if( !( 0 <= iItemDefID <= GetMaxItemID() ) )
 				continue;
 
-			iProperty = ItemData_GetCell( iItemDefID, ItemData_Property );
+			iProperty = ItemProperties_Get( iItemDefID );
 			if( KvGetNum( hItemConfig, "unusual", 0 ) )
 				iProperty |= TF2II_PROP_UNUSUAL;
 			if( KvGetNum( hItemConfig, "vintage", 0 ) )
@@ -1048,7 +1048,7 @@ ReloadConfigs()
 				iProperty |= TF2II_PROP_GENUINE;
 			if( KvGetNum( hItemConfig, "medieval", 0 ) )
 				iProperty |= TF2II_PROP_MEDIEVAL;
-			ItemData_SetCell( iItemDefID, ItemData_Property, iProperty );
+			ItemProperties_Set( iItemDefID, iProperty );
 		}
 		while( KvGotoNextKey( hItemConfig ) );
 	}
@@ -1108,7 +1108,7 @@ public Native_GetItemClass( Handle:hPlugin, nParams )
 	decl String:strBuffer[iBufferLength+1];
 	new bool:bResult = TF2IDB_GetItemClass( GetNativeCell(1), strBuffer, iBufferLength );
 	new TFClassType:iPlayerClass = nParams >= 4 ? ( TFClassType:GetNativeCell(4) ) : TFClass_Unknown;
-	if( StrEqual( strBuffer, "tf_weapon_shotgun", false ) )
+	if( StrEqual( strBuffer, "tf_weapon_shotgun", false ) ) {
 		switch( iPlayerClass )
 		{
 			case TFClass_Soldier:	Format(	strBuffer,	iBufferLength,	"%s_soldier",	strBuffer	);
@@ -1116,6 +1116,7 @@ public Native_GetItemClass( Handle:hPlugin, nParams )
 			case TFClass_Pyro:		Format(	strBuffer,	iBufferLength,	"%s_pyro",		strBuffer	);
 			case TFClass_Engineer:	Format(	strBuffer,	iBufferLength,	"%s_primary",	strBuffer	);
 		}
+	}
 	SetNativeString( 2, strBuffer, iBufferLength );
 	return bResult;
 }
@@ -1157,13 +1158,19 @@ public Native_GetItemQualityName( Handle:hPlugin, nParams )
 	SetNativeString( 2, strBuffer, iBufferLength );
 	return bResult;
 }
-public Native_GetToolType( Handle:hPlugin, nParams )
-{
+public Native_GetToolType( Handle:hPlugin, nParams ) {
 	new iBufferLength = GetNativeCell(3);
-	decl String:strBuffer[iBufferLength+1];
+	new String:strBuffer[iBufferLength+1];
+	new bool:val = GetToolType(GetNativeCell(1), strBuffer, iBufferLength);
+	if (val) {
+		SetNativeString(2, strBuffer, iBufferLength);
+	}
+	return val;
+}
+stock bool:GetToolType(iItemDefID, String:strBuffer[], iBufferLength) {
 	decl String:strId[16];
 	new Handle:arguments = CreateArray(16);
-	IntToString(GetNativeCell(1), strId, sizeof(strId));
+	IntToString(iItemDefID, strId, sizeof(strId));
 	PushArrayString(arguments, strId);
 	new DBStatement:resultStatement = TF2IDB_CustomQuery("SELECT tool_type FROM tf2idb_item WHERE id=?", arguments, iBufferLength);
 	CloseHandle(arguments);
@@ -1172,7 +1179,6 @@ public Native_GetToolType( Handle:hPlugin, nParams )
 	}
 	if (SQL_FetchRow(resultStatement)) {
 		SQL_FetchString(resultStatement, 0, strBuffer, iBufferLength);
-		SetNativeString(2, strBuffer, iBufferLength);
 		CloseHandle(resultStatement);
 		return true;
 	}
@@ -1289,61 +1295,6 @@ public Native_GetItemEquipRegions( Handle:hPlugin, nParams )
 public Native_ItemHasProperty( Handle:hPlugin, nParams )
 {
 	return ItemHasProp( GetNativeCell(1), GetNativeCell(2) );
-}
-
-public Native_GetItemKeyValues( Handle:hPlugin, nParams )
-{
-	new Handle:hKeyValues = Handle:ItemData_GetCell( GetNativeCell(1), ItemData_KeyValues );
-	if( hKeyValues == INVALID_HANDLE )
-		return _:INVALID_HANDLE;
-	new Handle:hCopy = CreateKeyValues( "item_data" );
-	KvCopySubkeys( hKeyValues, hCopy );
-	new Handle:hOutput = CloneHandle( hCopy, hPlugin );
-	CloseHandle( hCopy );
-	return _:hOutput;
-}
-public Native_GetItemKey( Handle:hPlugin, nParams )
-{
-	new Handle:hKeyValues = Handle:ItemData_GetCell( GetNativeCell(1), ItemData_KeyValues );
-
-	if( hKeyValues == INVALID_HANDLE )
-		return 0;
-
-	decl String:strKey[65];
-	GetNativeString( 2, strKey, sizeof(strKey) );
-
-	KvRewind( hKeyValues );
-	return KvGetNum( hKeyValues, strKey, 0 );
-}
-public Native_GetItemKeyFloat( Handle:hPlugin, nParams )
-{
-	new Handle:hKeyValues = Handle:ItemData_GetCell( GetNativeCell(1), ItemData_KeyValues );
-
-	if( hKeyValues == INVALID_HANDLE )
-		return 0;
-
-	decl String:strKey[65];
-	GetNativeString( 2, strKey, sizeof(strKey) );
-
-	KvRewind( hKeyValues );
-	return _:KvGetFloat( hKeyValues, strKey, 0.0 );
-}
-public Native_GetItemKeyString( Handle:hPlugin, nParams )
-{
-	new Handle:hKeyValues = Handle:ItemData_GetCell( GetNativeCell(1), ItemData_KeyValues );
-
-	if( hKeyValues == INVALID_HANDLE )
-		return;
-
-	decl String:strKey[65];
-	GetNativeString( 2, strKey, sizeof(strKey) );
-
-	new iBufferLength = GetNativeCell(4);
-	decl String:strBuffer[iBufferLength+1];
-
-	KvRewind( hKeyValues );
-	KvGetString( hKeyValues, strKey, strBuffer, iBufferLength, "" );
-	SetNativeString( 3, strBuffer, iBufferLength );
 }
 
 public Native_IsValidAttribID( Handle:hPlugin, nParams )
@@ -1648,7 +1599,10 @@ stock Handle:Internal_FindItems(Handle:hPlugin, String:strClass[], String:strSlo
 	}
 	else
 	{
-		StrCat(query, sizeof(query), " WHERE");
+		if (paramCount)
+		{
+			StrCat(query, sizeof(query), " WHERE");
+		}
 	}
 	if (strClass[0])
 	{
@@ -1699,15 +1653,21 @@ public Native_DeprecatedFunction( Handle:hPlugin, nParams )
 	Error( ERROR_BREAKN|ERROR_LOG|ERROR_NOPRINT, SP_ERROR_ABORTED, "Deprecated function." );
 	return 0;
 }
+public Native_UnsupportedFunction( Handle:hPlugin, nParams )
+{
+	Error( ERROR_BREAKN|ERROR_LOG|ERROR_NOPRINT, SP_ERROR_ABORTED, "Unsupported function." );
+	return 0;
+}
 
 //////////////////
 /* SQL handlers */
 //////////////////
 
-public SQL_ErrorCheck( Handle:hOwner, Handle:hQuery, const String:strError[], any:iUnused )
-	if( strlen( strError ) )
+public SQL_ErrorCheck( Handle:hOwner, Handle:hQuery, const String:strError[], any:iUnused ) {
+	if( strlen( strError ) ) {
 		LogError( "MySQL DB error: %s", strError );
-
+	}
+}
 /////////////////////
 /* Stock functions */
 /////////////////////
@@ -1838,54 +1798,56 @@ stock ItemData_SetIndex( iItemDefID, iIndex )
 	return false;
 }
 
-stock ItemData_GetCell( iItemDefID, ItemDataType:iIDType )
+stock any:ItemData_GetCell( iItemDefID, ItemDataType:iIDType )
 {
-	new iIndex = ItemData_GetIndex( iItemDefID );
-	if( iIndex < 0 || iIndex >= GetArraySize( g_hItemData ) )
-		return 0;
-
-	new iType = _:iIDType;
-	if( iType < 0 || iType >= _:ItemDataType )
-		return 0;
-
-	new Handle:hArray = Handle:GetArrayCell( g_hItemData, iIndex );
-	if( hArray != INVALID_HANDLE )
-		return GetArrayCell( hArray, iType );
+	int minLevel, maxLevel;
+	if (iIDType == ItemData_MinLevel || iIDType == ItemData_MaxLevel) {
+		TF2IDB_GetItemLevels(iItemDefID, minLevel, maxLevel);
+	}
+	switch (iIDType) {
+		case ItemData_DefinitionID: return iItemDefID;
+		case ItemData_MinLevel: return minLevel;
+		case ItemData_MaxLevel: return maxLevel;
+		case ItemData_UsedBy: return TF2IDB_UsedByClasses(iItemDefID) >> 1;
+		case ItemData_EquipRegions: return TF2IDB_GetItemEquipRegions(iItemDefID);
+		case ItemData_KeyValues: return INVALID_HANDLE;
+		default: return 0;
+	}
 	return 0;
 }
-stock bool:ItemData_SetCell( iItemDefID, ItemDataType:iIDType, iValue )
-{
-	new iIndex = ItemData_GetIndex( iItemDefID );
-	if( iIndex < 0 || iIndex >= GetArraySize( g_hItemData ) )
-		return false;
 
-	new iType = _:iIDType;
-	if( iType < 0 || iType >= _:ItemDataType )
-		return false;
-
-	new Handle:hArray = Handle:GetArrayCell( g_hItemData, iIndex );
-	if( hArray != INVALID_HANDLE )
-	{
-		SetArrayCell( hArray, iType, iValue );
-		return true;
-	}
-	return false;
-}
 
 stock ItemData_GetString( iItemDefID, ItemDataType:iIDType, String:strValue[], iValueLength )
 {
-	new iIndex = ItemData_GetIndex( iItemDefID );
-	if( iIndex < 0 || iIndex >= GetArraySize( g_hItemData ) )
-		return 0;
-
-	new iType = _:iIDType;
-	if( iType < 0 || iType >= _:ItemDataType )
-		return 0;
-
-	new Handle:hArray = Handle:GetArrayCell( g_hItemData, iIndex );
-	if( hArray != INVALID_HANDLE )
-		return GetArrayString( hArray, iType, strValue, iValueLength );
-	return 0;
+	switch (iIDType) {
+		case ItemData_Name: TF2IDB_GetItemName(iItemDefID, strValue, iValueLength);
+		case ItemData_ClassName: TF2IDB_GetItemClass(iItemDefID, strValue, iValueLength);
+		case ItemData_Slot: TF2IDB_GetItemSlotName(iItemDefID, strValue, iValueLength);
+		case ItemData_ListedSlot: TF2IDB_GetItemSlotName(iItemDefID, strValue, iValueLength);
+		case ItemData_Tool: GetToolType(iItemDefID, strValue, iValueLength);
+		case ItemData_Quality: TF2IDB_GetItemQualityName(iItemDefID, strValue, iValueLength);
+		case ItemData_MLName: GetItemMLName(iItemDefID, strValue, iValueLength);
+		default: return 0;
+	}
+	return strlen(strValue);
+}
+stock bool:GetItemMLName(iItemDefID, String:strBuffer[], iBufferLength) {
+	decl String:strId[16];
+	new Handle:arguments = CreateArray(16);
+	IntToString(iItemDefID, strId, sizeof(strId));
+	PushArrayString(arguments, strId);
+	new DBStatement:resultStatement = TF2IDB_CustomQuery("SELECT item_name FROM tf2idb_item WHERE id=?", arguments, iBufferLength);
+	CloseHandle(arguments);
+	if (resultStatement == INVALID_HANDLE) {
+		return false;
+	}
+	if (SQL_FetchRow(resultStatement)) {
+		SQL_FetchString(resultStatement, 0, strBuffer, iBufferLength);
+		CloseHandle(resultStatement);
+		return true;
+	}
+	CloseHandle(resultStatement);
+	return false;
 }
 stock ItemData_SetString( iItemDefID, ItemDataType:iIDType, const String:strValue[] )
 {
@@ -2098,10 +2060,16 @@ stock int GetMaxAttributeID()
 */
 stock bool:ItemHasProp( iItemDefID, iFlags )
 {
-	if( !( 0 <= iItemDefID <= GetMaxItemID() ) || iFlags <= TF2II_PROP_INVALID )
+	if( iFlags <= TF2II_PROP_INVALID )
 		return false;
+	return ( ItemProperties_Get(iItemDefID) & iFlags ) == iFlags;
+}
+
+stock ItemProperties_GetBase(iItemDefID) {
+	if( !( 0 <= iItemDefID <= GetMaxItemID() ))
+		return 0;
 	if( !IsValidItemID( iItemDefID ) )
-		return false;
+		return 0;
 	new resultFlags = TF2II_PROP_VALIDITEM;
 	resultFlags |= (TF2II_IsBaseItem(iItemDefID) ? TF2II_PROP_BASEITEM : 0);
 	resultFlags |= (TF2II_IsItemPaintable(iItemDefID) ? TF2II_PROP_PAINTABLE : 0);
@@ -2111,7 +2079,21 @@ stock bool:ItemHasProp( iItemDefID, iFlags )
 	resultFlags |= (TF2II_IsHalloweenOrFullMoonItem(iItemDefID) ? TF2II_PROP_HOFM_STRICT : 0);
 	resultFlags |= (TF2II_IsChristmasItem(iItemDefID) ? TF2II_PROP_XMAS_STRICT : 0);
 	resultFlags |= (TF2II_HasProperName(iItemDefID) ? TF2II_PROP_PROPER_NAME : 0);
-	return ( resultFlags & iFlags ) == iFlags;
+	return resultFlags;
+}
+stock ItemProperties_Get(iItemDefID) {
+	new val = 0;
+	new String:strId[16];
+	IntToString(iItemDefID, strId, sizeof(strId));
+	if (!GetTrieValue(g_hItemProperties, strId, val)) {
+		val = 0;
+	}
+	return val | ItemProperties_GetBase(iItemDefID);
+}
+stock ItemProperties_Set(iItemDefID, iProperties) {
+	new String:strId[16];
+	IntToString(iItemDefID, strId, sizeof(strId));
+	SetTrieValue(g_hItemProperties, strId, iProperties);
 }
 
 stock bool:AttribHasProp( iAttribID, iFlags )
