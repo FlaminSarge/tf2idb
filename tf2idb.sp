@@ -2,10 +2,10 @@
 
 public Plugin:myinfo = {
 	name		= "TF2IDB",
-	author	  	= "Bottiger",
-	description = "Item Schema Database",
+	author	  	= "Bottiger, FlaminSarge",
+	description = "TF2 Item Schema Database",
 	version	 	= PLUGIN_VERSION,
-	url		 	= "http://skial.com"
+	url		 	= "http://github.com/flaminsarge/tf2idb"
 };
 
 #include <tf2>
