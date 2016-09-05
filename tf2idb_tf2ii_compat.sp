@@ -218,14 +218,14 @@ public APLRes:AskPluginLoad2(Handle:hPlugin, bool:bLateLoad, String:sError[], iE
 
 public OnPluginStart()
 {
-	sm_tf2ii_version = CreateConVar( "sm_tf2ii_version", PLUGIN_VERSION, "TF2 Items Info Plugin Version", FCVAR_PLUGIN|FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_SPONLY );
+	sm_tf2ii_version = CreateConVar( "sm_tf2ii_version", PLUGIN_VERSION, "TF2 Items Info Plugin Version", FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_SPONLY );
 	SetConVarString( sm_tf2ii_version, PLUGIN_VERSION, true, true );
 	HookConVarChange( sm_tf2ii_version, OnConVarChanged_PluginVersion );
 
-	HookConVarChange( sm_tf2ii_logs = CreateConVar( "sm_tf2ii_logs", bUseLogs ? "1" : "0", "Enable/disable logs", FCVAR_PLUGIN, true, 0.0, true, 1.0 ), OnConVarChanged );
-	HookConVarChange( sm_tf2ii_fix01 = CreateConVar( "sm_tf2ii_fix01", "0", "Fix items with 'string' attributes:\n0 - disabled, 1 - skip 'string' attributes, 2 - skip items with 'string' attributes.", FCVAR_PLUGIN, true, 0.0, true, 2.0 ), OnConVarChanged );
+	HookConVarChange( sm_tf2ii_logs = CreateConVar( "sm_tf2ii_logs", bUseLogs ? "1" : "0", "Enable/disable logs", 0, true, 0.0, true, 1.0 ), OnConVarChanged );
+	HookConVarChange( sm_tf2ii_fix01 = CreateConVar( "sm_tf2ii_fix01", "0", "Fix items with 'string' attributes:\n0 - disabled, 1 - skip 'string' attributes, 2 - skip items with 'string' attributes.", 0, true, 0.0, true, 2.0 ), OnConVarChanged );
 #if defined _updater_included
-	HookConVarChange( sm_tf2ii_updater = CreateConVar("sm_tf2ii_updater", bAutoUpdate ? "1" : "0", "Enable/disable autoupdate", FCVAR_PLUGIN, true, 0.0, true, 1.0), OnConVarChanged);
+	HookConVarChange( sm_tf2ii_updater = CreateConVar("sm_tf2ii_updater", bAutoUpdate ? "1" : "0", "Enable/disable autoupdate", 0, true, 0.0, true, 1.0), OnConVarChanged);
 #endif
 
 	decl String:strGameDir[8];
