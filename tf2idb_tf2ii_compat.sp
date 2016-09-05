@@ -1827,7 +1827,7 @@ stock ItemData_GetString( iItemDefID, ItemDataType:iIDType, String:strValue[], i
 		case ItemData_Tool: GetToolType(iItemDefID, strValue, iValueLength);
 		case ItemData_Quality: TF2IDB_GetItemQualityName(iItemDefID, strValue, iValueLength);
 		case ItemData_MLName: GetItemMLName(iItemDefID, strValue, iValueLength);
-		default: return 0;
+		default: strcopy(strValue, iValueLength, "");
 	}
 	return strlen(strValue);
 }
