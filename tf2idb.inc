@@ -67,6 +67,10 @@ native Handle:TF2IDB_ListParticles();
 //TF2IDB_FindItemCustom returns an Array Handle containing a list of integers for the first column of the query result
 native Handle:TF2IDB_FindItemCustom(const String:query[]);
 native bool:TF2IDB_ItemHasAttribute(id, aid);
+//TF2IDB_UsedByClasses returns a bitfield (0bXXXXXXXXXX) of the classes that use this item
+//Check a particular class using e.g. (TF2IDB_UsedByClasses(id) & (1 << _:TFClass_Scout))
+//Note that this DOES INCLUDE TFClass_Unknown, as (1 << 0)
+native TF2IDB_UsedByClasses(id);
 
 //All return false if ID invalid/not found
 native bool:TF2IDB_IsValidAttributeID(id);

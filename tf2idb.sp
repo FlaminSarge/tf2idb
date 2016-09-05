@@ -26,6 +26,7 @@ public APLRes:AskPluginLoad2(Handle:hPlugin, bool:bLateLoad, String:sError[], iE
 	CreateNative("TF2IDB_ListParticles", Native_ListParticles);
 	CreateNative("TF2IDB_FindItemCustom", Native_FindItemCustom);
 	CreateNative("TF2IDB_ItemHasAttribute", Native_ItemHasAttribute);
+	CreateNative("TF2IDB_UsedByClasses", Native_UsedByClasses);
 
 	CreateNative("TF2IDB_CustomQuery", Native_CustomQuery);
 
@@ -61,6 +62,7 @@ new Handle:g_statement_ListParticles;
 new Handle:g_statement_DoRegionsConflict;
 new Handle:g_statement_ItemHasAttribute;
 new Handle:g_statement_GetItemSlotNameByClass;
+new Handle:g_statement_UsedByClasses;
 
 //new Handle:g_statement_IsValidAttributeID;
 new Handle:g_statement_GetAttributeName;
@@ -89,7 +91,7 @@ new String:g_class_mappings[][] = {
 };
 
 public OnPluginStart() {
-	CreateConVar("sm_tf2idb_version", PLUGIN_VERSION, "TF2IDB version", FCVAR_PLUGIN|FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_SPONLY);
+	CreateConVar("sm_tf2idb_version", PLUGIN_VERSION, "TF2IDB version", FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_SPONLY);
 
 	decl String:error[255];
 	g_db = SQLite_UseDatabase("tf2idb", error, sizeof(error));
@@ -110,6 +112,7 @@ public OnPluginStart() {
 	PREPARE_STATEMENT(g_statement_DoRegionsConflict, "SELECT a.name FROM tf2idb_equip_conflicts a JOIN tf2idb_equip_conflicts b ON a.name=b.name WHERE a.region=? AND b.region=?")
 	PREPARE_STATEMENT(g_statement_ItemHasAttribute, "SELECT attribute FROM tf2idb_item a JOIN tf2idb_item_attributes b ON a.id=b.id WHERE a.id=? AND attribute=?")
 	PREPARE_STATEMENT(g_statement_GetItemSlotNameByClass, "SELECT slot FROM tf2idb_class WHERE id=? AND class=?")
+	PREPARE_STATEMENT(g_statement_UsedByClasses, "SELECT class FROM tf2idb_class WHERE id=?")
 
 //	PREPARE_STATEMENT(g_statement_IsValidAttributeID, "SELECT id FROM tf2idb_attributes WHERE id=?")
 	PREPARE_STATEMENT(g_statement_GetAttributeName, "SELECT name FROM tf2idb_attributes WHERE id=?")
@@ -575,6 +578,22 @@ public Native_ItemHasAttribute(Handle:hPlugin, nParams) {
 		return SQL_GetRowCount(g_statement_ItemHasAttribute) > 0;
 	}
 	return false;
+}
+
+public Native_UsedByClasses(Handle:hPlugin, nParams) {
+	new id = GetNativeCell(1);
+	new String:class[16];
+	new result = 0;
+	
+	SQL_BindParamInt(g_statement_UsedByClasses, 0, id);
+	SQL_Execute(g_statement_UsedByClasses);
+	
+	while (SQL_FetchRow(g_statement_UsedByClasses)) {
+		if (SQL_FetchString(g_statement_UsedByClasses, 0, class, sizeof(class)) > 0) {
+			result |= (1 << _:TF2_GetClass(class));
+		}
+	}
+	return result;
 }
 
 public Native_IsValidAttributeID(Handle:hPlugin, nParams) {
