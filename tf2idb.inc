@@ -105,7 +105,7 @@ native TF2ItemQuality:TF2IDB_GetQualityByName(const String:string[]);
  * @param	maxStringSize	Max size of any of the arguments
  *
  * @return					A fully executed DBStatement handle, or INVALID_HANDLE if the statement
- *							execution failed. This handle must be closed by the calling plugin.
+ *							execution failed. This handle must be closed by the calling plugin, even though it is owned by tf2idb.
  **/
 native DBStatement:TF2IDB_CustomQuery(const String:query[], Handle:arguments, maxStringSize);
 

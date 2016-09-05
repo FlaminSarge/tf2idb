@@ -531,9 +531,11 @@ public Native_CustomQuery(Handle:hPlugin, nParams) {
 		SQL_BindParamString(queryHandle, i, buf, true);
 	}
 	if(SQL_Execute(queryHandle)) {
-		Handle resultHandle = CloneHandle(queryHandle, hPlugin);
-		CloseHandle(queryHandle);
-		return _:resultHandle;
+		return _:queryHandle;
+	} else {
+		if (queryHandle != INVALID_HANDLE) {
+			CloseHandle(queryHandle);
+		}
 	}
 	return _:INVALID_HANDLE;
 
