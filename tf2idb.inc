@@ -57,16 +57,23 @@ native TF2ItemSlot:TF2IDB_GetItemSlot(id, TFClassType:classType=TFClass_Unknown)
 native bool:TF2IDB_GetItemQualityName(id, String:string[], length);
 native TF2ItemQuality:TF2IDB_GetItemQuality(id);
 native bool:TF2IDB_GetItemLevels(id, &min, &max);
+
 //TF2IDB_GetItemAttributes returns the number of attributes found
 native TF2IDB_GetItemAttributes(id, aid[TF2IDB_MAX_ATTRIBUTES], Float:values[TF2IDB_MAX_ATTRIBUTES]);
+
 //TF2IDB_GetItemEquipRegions returns an Array Handle containing a list of the equip region names for the item
 native Handle:TF2IDB_GetItemEquipRegions(id);
+
 native bool:TF2IDB_DoRegionsConflict(const String:region1[], const String:region2[]);
+
 //TF2IDB_ListParticles returns an Array Handle containing a list of the particle IDs
 native Handle:TF2IDB_ListParticles();
+
 //TF2IDB_FindItemCustom returns an Array Handle containing a list of integers for the first column of the query result
 native Handle:TF2IDB_FindItemCustom(const String:query[]);
+
 native bool:TF2IDB_ItemHasAttribute(id, aid);
+
 //TF2IDB_UsedByClasses returns a bitfield (0bXXXXXXXXXX) of the classes that use this item
 //Check a particular class using e.g. (TF2IDB_UsedByClasses(id) & (1 << _:TFClass_Scout))
 //Note that this DOES INCLUDE TFClass_Unknown, as (1 << 0)
@@ -82,6 +89,7 @@ native bool:TF2IDB_GetAttributeDescFormat(id, String:string[], length);
 native bool:TF2IDB_GetAttributeEffectType(id, String:string[], length);
 native bool:TF2IDB_GetAttributeArmoryDesc(id, String:string[], length);
 native bool:TF2IDB_GetAttributeItemTag(id, String:string[], length);
+
 //TF2IDB_GetAttributeProperties copies the result to each field, -1 indicating the field was not present on the attribute
 native bool:TF2IDB_GetAttributeProperties(id, &hidden=-1, &stored_as_integer=-1, &is_set_bonus=-1, &is_user_generated=-1, &can_affect_recipe_component_name=-1);
 
@@ -136,6 +144,7 @@ public __pl_tf2idb_SetNTVOptional() {
 	MarkNativeAsOptional("TF2IDB_ListParticles");
 	MarkNativeAsOptional("TF2IDB_FindItemCustom");
 	MarkNativeAsOptional("TF2IDB_ItemHasAttribute");
+	MarkNativeAsOptional("TF2IDB_UsedByClasses");
 
 	MarkNativeAsOptional("TF2IDB_IsValidAttributeID");
 	MarkNativeAsOptional("TF2IDB_GetAttributeName");
@@ -150,5 +159,7 @@ public __pl_tf2idb_SetNTVOptional() {
 
 	MarkNativeAsOptional("TF2IDB_GetQualityName");
 	MarkNativeAsOptional("TF2IDB_GetQualityByName");
+
+	MarkNativeAsOptional("TF2IDB_CustomQuery");
 }
 #endif
