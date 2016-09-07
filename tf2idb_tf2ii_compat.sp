@@ -374,7 +374,7 @@ public Action:Command_FindItems( iClient, nArgs )
 
 	iResults = GetArraySize( hResults ) / 2;
 
-	ReplyToCommand( iClient, "Found %d items (page:%d/%d):", iResults, ( iResults ? iPage : 0 ), RoundToCeil( float( iResults ) / float(SEARCH_ITEMSPERPAGE) ) );
+	ReplyToCommand( iClient, "Found %d items (p. %d/%d):", iResults, ( iResults ? iPage : 0 ), RoundToCeil( float( iResults ) / float(SEARCH_ITEMSPERPAGE) ) );
 
 	iPage--;
 	new iMin = SEARCH_ITEMSPERPAGE * iPage;
@@ -468,7 +468,7 @@ public Action:Command_FindItemsByClass( iClient, nArgs )
 
 	iResults = GetArraySize( hResults ) / 2;
 
-	ReplyToCommand( iClient, "Found %d items (page:%d/%d):", iResults, ( iResults ? iPage : 0 ), RoundToCeil( float( iResults ) / float(SEARCH_ITEMSPERPAGE) ) );
+	ReplyToCommand( iClient, "Found %d items (p. %d/%d):", iResults, ( iResults ? iPage : 0 ), RoundToCeil( float( iResults ) / float(SEARCH_ITEMSPERPAGE) ) );
 
 	iPage--;
 	new iMin = SEARCH_ITEMSPERPAGE * iPage;
@@ -879,7 +879,7 @@ public Action:Command_FindAttributes( iClient, nArgs )
 
 	iResults = GetArraySize(hResults) / 2;
 
-	ReplyToCommand( iClient, "Found %d attributes (page:%d/%d):", iResults, ( iResults ? iPage : 0 ), RoundToCeil( float( iResults ) / float(SEARCH_ITEMSPERPAGE) ) );
+	ReplyToCommand( iClient, "Found %d attributes (p. %d/%d):", iResults, ( iResults ? iPage : 0 ), RoundToCeil( float( iResults ) / float(SEARCH_ITEMSPERPAGE) ) );
 
 	iPage--;
 	new iMin = SEARCH_ITEMSPERPAGE * iPage;
@@ -963,7 +963,7 @@ public Action:Command_FindAttributesByClass( iClient, nArgs )
 		CloseHandle(resultStatement);
 	}
 
-	ReplyToCommand( iClient, "Found %d attributes (page:%d/%d):", iResults, ( iResults ? iPage : 0 ), RoundToCeil( float( iResults ) / float(SEARCH_ITEMSPERPAGE) ) );
+	ReplyToCommand( iClient, "Found %d attributes (p. %d/%d):", iResults, ( iResults ? iPage : 0 ), RoundToCeil( float( iResults ) / float(SEARCH_ITEMSPERPAGE) ) );
 
 	iPage--;
 	new iMin = SEARCH_ITEMSPERPAGE * iPage;
