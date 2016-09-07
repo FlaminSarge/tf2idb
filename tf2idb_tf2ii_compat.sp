@@ -883,7 +883,7 @@ public Action:Command_FindAttributes( iClient, nArgs )
 
 	iPage--;
 	new iMin = SEARCH_ITEMSPERPAGE * iPage;
-	iMin = ( iMin < 1 ? 1 : iMin );
+	iMin = ( iMin < 0 ? 0 : iMin );
 	new iMax = SEARCH_ITEMSPERPAGE * (iPage+1);
 	iMax = ( iMax >= iResults ? iResults : iMax );
 
@@ -967,7 +967,7 @@ public Action:Command_FindAttributesByClass( iClient, nArgs )
 
 	iPage--;
 	new iMin = SEARCH_ITEMSPERPAGE * iPage;
-	iMin = ( iMin < 1 ? 1 : iMin );
+	iMin = ( iMin < 0 ? 0 : iMin );
 	new iMax = SEARCH_ITEMSPERPAGE * (iPage+1);
 	iMax = ( iMax >= iResults ? iResults : iMax );
 
