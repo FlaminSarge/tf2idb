@@ -35,6 +35,9 @@ public Plugin:myinfo = {
 #define SEARCH_MINLENGTH	2
 #define SEARCH_ITEMSPERPAGE	20
 
+#define OLD_MAX_ITEM_ID 30789	//highest as of Sep 10, 2016, "Scoped Spartan", used if tf2idb fails
+#define OLD_MAX_ATTR_ID 3018	//highest as of Sep 10, 2016, "item_drop_wave", used if tf2idb fails
+
 #define ERROR_NONE		0		// PrintToServer only
 #define ERROR_LOG		(1<<0)	// use LogToFile
 #define ERROR_BREAKF	(1<<1)	// use ThrowError
@@ -123,6 +126,7 @@ new Handle:sm_tf2ii_updater = INVALID_HANDLE;
 #endif
 
 new bool:bUseLogs = true;
+new bool:bSchemaLoaded = false;
 new nFix01State = 0;
 #if defined _updater_included
 new bool:bAutoUpdate = true;
@@ -208,8 +212,6 @@ public APLRes:AskPluginLoad2(Handle:hPlugin, bool:bLateLoad, String:sError[], iE
 	hForward_OnSearchCommand = CreateGlobalForward( "TF2II_OnSearchCommand", ET_Ignore, Param_Cell, Param_String, Param_CellByRef, Param_Cell );
 	hForward_OnFindItems = CreateGlobalForward( "TF2II_OnFindItems", ET_Ignore, Param_String, Param_String, Param_Cell, Param_String, Param_CellByRef );
 
-	RegPluginLibrary( "tf2itemsinfo" );
-
 	return APLRes_Success;
 }
 
@@ -244,24 +246,35 @@ public OnPluginStart()
 	RegConsoleCmd( "sm_fac", Command_FindAttributesByClass, "[TF2II] Find attributes by attribute class name." );
 
 	//PrecacheItemSchema();
-	ReloadConfigs();
-	
-	if (LibraryExists("tf2idb")) {
-		Call_StartForward( hForward_ItemSchemaUpdated );
-		Call_Finish();
-	}
 }
 
-public OnLibraryAdded( const String:strName[] )
-{
-	if (StrEqual(strName, "tf2idb", false)) {
+public OnAllPluginsLoaded() {
+	if (LibraryExists("tf2idb") && !bSchemaLoaded) {
 		Call_StartForward( hForward_ItemSchemaUpdated );
 		Call_Finish();
+		bSchemaLoaded = true;
+		RegPluginLibrary( "tf2itemsinfo" );
+	}
+	ReloadConfigs();
+}
+// a fwd call to ItemSchemaUpdated should only happen once
+public OnLibraryAdded(const String:strName[]) {
+	if (StrEqual(strName, "tf2idb", false) && !bSchemaLoaded) {
+		Call_StartForward( hForward_ItemSchemaUpdated );
+		Call_Finish();
+		bSchemaLoaded = true;
+		RegPluginLibrary( "tf2itemsinfo" );
 	}
 #if defined _updater_included
-	if( PLUGIN_UPDATE_URL[0] != '\0' && StrEqual( strName, "updater", false ) )
-        Updater_AddPlugin( PLUGIN_UPDATE_URL );
+	if (PLUGIN_UPDATE_URL[0] != '\0' && StrEqual(strName, "updater", false)) {
+        Updater_AddPlugin(PLUGIN_UPDATE_URL);
+	}
 #endif
+}
+public OnLibraryRemoved(const String:strName[]) {
+	if (StrEqual(strName, "tf2idb", false)) {
+		bSchemaLoaded = false;
+	}
 }
 
 GetConVars()
@@ -987,11 +1000,14 @@ public Action:Command_FindAttributesByClass( iClient, nArgs )
 /* CVar handlers */
 ///////////////////
 
-public OnConVarChanged_PluginVersion( Handle:hConVar, const String:strOldValue[], const String:strNewValue[] )
-	if( strcmp( strNewValue, PLUGIN_VERSION, false ) != 0 )
+public OnConVarChanged_PluginVersion( Handle:hConVar, const String:strOldValue[], const String:strNewValue[] ) {
+	if( strcmp( strNewValue, PLUGIN_VERSION, false ) != 0 ) {
 		SetConVarString( hConVar, PLUGIN_VERSION, true, true );
-public OnConVarChanged( Handle:hConVar, const String:strOldValue[], const String:strNewValue[] )
+	}
+}
+public OnConVarChanged( Handle:hConVar, const String:strOldValue[], const String:strNewValue[] ) {
 	GetConVars();
+}
 
 ///////////////////////
 /* Private functions */
@@ -1005,8 +1021,7 @@ stock ReloadConfigs()
 
 	decl String:strFilePath[PLATFORM_MAX_PATH] = "data/tf2itemsinfo.txt";
 	BuildPath( Path_SM, strFilePath, sizeof(strFilePath), strFilePath );
-	if( !FileExists( strFilePath ) )
-	{
+	if( !FileExists( strFilePath ) ) {
 		Error( ERROR_LOG, _, "Missing config file, making empty at %s", strFilePath );
 		KeyValuesToFile( hItemConfig, strFilePath );
 		CloseHandle( hItemConfig );
@@ -1019,17 +1034,17 @@ stock ReloadConfigs()
 	FileToKeyValues( hItemConfig, strFilePath );
 	KvRewind( hItemConfig );
 
-	if( KvGotoFirstSubKey( hItemConfig ) )
-	{
+	if( KvGotoFirstSubKey( hItemConfig ) ) {
 		new iItemDefID, iProperty;
-		do
-		{
+		do {
 			KvGetSectionName( hItemConfig, strBuffer, sizeof(strBuffer) );
-			if( !IsCharNumeric( strBuffer[0] ) )
+			if (!IsCharNumeric(strBuffer[0])) {
 				continue;
+			}
 			iItemDefID = StringToInt( strBuffer );
-			if( !( 0 <= iItemDefID <= GetMaxItemID() ) )
+			if (!( 0 <= iItemDefID <= GetMaxItemID())) {
 				continue;
+			}
 
 			iProperty = ItemProperties_Get( iItemDefID );
 			if( KvGetNum( hItemConfig, "unusual", 0 ) )
@@ -1058,8 +1073,7 @@ stock ReloadConfigs()
 	Error( ERROR_NONE, _, "Item config loaded." );
 }
 
-int GetAttribIDByName( const String:strSearch[] )
-{
+int GetAttribIDByName( const String:strSearch[] ) {
 	new maxlen = 128;
 	new Handle:arguments = CreateArray(maxlen);
 	PushArrayString(arguments, strSearch);
@@ -1076,8 +1090,7 @@ int GetAttribIDByName( const String:strSearch[] )
 	CloseHandle(resultStatement);
 	return -1;
 }
-TF2ItemQuality:GetQualityByName( const String:strSearch[] )
-{
+TF2ItemQuality:GetQualityByName( const String:strSearch[] ) {
 	return TF2IDB_GetQualityByName(strSearch);
 }
 
@@ -1085,9 +1098,8 @@ TF2ItemQuality:GetQualityByName( const String:strSearch[] )
 /* Native functions */
 //////////////////////
 
-public Native_IsItemSchemaPrecached( Handle:hPlugin, nParams )
-{
-	return LibraryExists("tf2idb");
+public Native_IsItemSchemaPrecached( Handle:hPlugin, nParams ) {
+	return bSchemaLoaded;
 }
 
 public Native_IsValidItemID( Handle:hPlugin, nParams )
@@ -1120,13 +1132,12 @@ public Native_GetItemClass( Handle:hPlugin, nParams )
 	SetNativeString( 2, strBuffer, iBufferLength );
 	return bResult;
 }
-public Native_GetItemSlot( Handle:hPlugin, nParams )
-{
+public Native_GetItemSlot( Handle:hPlugin, nParams ) {
+	// TODO: Make this call TF2IDB_GetItemSlot instead, if possible, while still applying TF2II logic
 	decl String:strSlot[TF2IDB_ITEMSLOT_LENGTH];
-	if( TF2IDB_GetItemSlotName( GetNativeCell(1), strSlot, sizeof(strSlot) ) )
-	{
-		new TFClassType:iPClass = nParams >= 2 ? (TFClassType:GetNativeCell(2)) : TFClass_Unknown;
-		return _:TF2II_GetSlotByName( strSlot, iPClass );
+	new TFClassType:iPClass = nParams >= 2 ? (TFClassType:GetNativeCell(2)) : TFClass_Unknown;
+	if (TF2IDB_GetItemSlotName(GetNativeCell(1), strSlot, sizeof(strSlot), iPClass)) {
+		return _:TF2II_GetSlotByName(strSlot, iPClass);
 	}
 	return -1;
 }
@@ -2019,15 +2030,19 @@ stock AttribData_SetString( iAttribID, AttribDataType:iADType, const String:strV
 /* Validating functions */
 //////////////////////////
 
-stock bool:IsValidItemID( iItemDefID )
+stock bool:IsValidItemID( iItemDefID ) {
 	return ( 0 <= iItemDefID <= GetMaxItemID() && TF2IDB_IsValidItemID(iItemDefID) );
-stock bool:IsValidAttribID( iAttribID )
+}
+stock bool:IsValidAttribID( iAttribID ) {
 	return ( 0 < iAttribID <= GetMaxAttributeID() && TF2IDB_IsValidAttributeID(iAttribID) );
+}
 
-stock int GetMaxItemID()
-{
+stock int GetMaxItemID() {
 	static bool found = false;
 	static int maxVal = 0;
+	if (!bSchemaLoaded) {
+		return OLD_MAX_ITEM_ID;
+	}
 	if (!found) {
 		new Handle:list = TF2IDB_FindItemCustom("SELECT MAX(id) FROM tf2idb_item");
 		maxVal = GetArrayCell(list, 0);
@@ -2037,10 +2052,12 @@ stock int GetMaxItemID()
 	return maxVal;
 }
 
-stock int GetMaxAttributeID()
-{
+stock int GetMaxAttributeID() {
 	static bool found = false;
 	static int maxVal = 0;
+	if (!bSchemaLoaded) {
+		return OLD_MAX_ATTR_ID;
+	}
 	if (!found) {
 		new Handle:list = TF2IDB_FindItemCustom("SELECT MAX(id) FROM tf2idb_attributes");
 		maxVal = GetArrayCell(list, 0);
