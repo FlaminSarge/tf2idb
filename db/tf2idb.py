@@ -129,6 +129,13 @@ def main():
                 tool = i['tool'].get('type')
 
             has_string_attribute = False
+            if 'static_attrs' in i:
+                for name,value in i['static_attrs'].items():
+                    aid,atype = attribute_type[name.lower()]
+                    if atype == 'string':
+                        has_string_attribute = True
+                    dbc.execute('INSERT INTO new_tf2idb_item_attributes (id,attribute,value) VALUES (?,?,?)', (id,aid,value))
+
             if 'attributes' in i:
                 for name,info in i['attributes'].items():
                     aid,atype = attribute_type[name.lower()]
