@@ -41,7 +41,14 @@ def main():
     dbc.execute('DROP TABLE IF EXISTS new_tf2idb_qualities')
 
     dbc.execute('CREATE TABLE "new_tf2idb_class" ("id" INTEGER NOT NULL , "class" TEXT NOT NULL , "slot" TEXT , PRIMARY KEY ("id", "class"))')
-    dbc.execute('CREATE TABLE "new_tf2idb_item_attributes" ("id" INTEGER NOT NULL , "attribute" INTEGER NOT NULL , "value" TEXT NOT NULL, PRIMARY KEY ("id", "attribute") )')
+    dbc.execute('CREATE TABLE "new_tf2idb_item_attributes" ('
+        '"id" INTEGER NOT NULL,'
+        '"attribute" INTEGER NOT NULL,'
+        '"value" TEXT NOT NULL,'
+        '"static" INTEGER,'
+        'PRIMARY KEY ("id", "attribute")'
+        ')'
+    )
     dbc.execute('CREATE TABLE "new_tf2idb_item" ('
         '"id" INTEGER PRIMARY KEY NOT NULL,'
         '"name" TEXT NOT NULL,'
@@ -141,14 +148,14 @@ def main():
                     aid,atype = attribute_type[name.lower()]
                     if atype == 'string':
                         has_string_attribute = True
-                    dbc.execute('INSERT INTO new_tf2idb_item_attributes (id,attribute,value) VALUES (?,?,?)', (id,aid,value))
+                    dbc.execute('INSERT INTO new_tf2idb_item_attributes (id,attribute,value,static) VALUES (?,?,?,?)', (id,aid,value,1))
 
             if 'attributes' in i:
                 for name,info in i['attributes'].items():
                     aid,atype = attribute_type[name.lower()]
                     if atype == 'string':
                         has_string_attribute = True
-                    dbc.execute('INSERT INTO new_tf2idb_item_attributes (id,attribute,value) VALUES (?,?,?)', (id,aid,info['value']))
+                    dbc.execute('INSERT INTO new_tf2idb_item_attributes (id,attribute,value,static) VALUES (?,?,?,?)', (id,aid,info['value'],0))
 
             dbc.execute('INSERT INTO new_tf2idb_item '
                 '(id,name,item_name,class,slot,quality,tool_type,min_ilevel,max_ilevel,baseitem,holiday_restriction,has_string_attribute,propername) '
