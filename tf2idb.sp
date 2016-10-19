@@ -136,16 +136,6 @@ public OnPluginStart() {
 	SetTrieValue(g_slot_mappings, "taunt", TF2ItemSlot_Taunt);
 	SetTrieValue(g_slot_mappings, "action", TF2ItemSlot_Action);
 
-	g_quality_mappings = CreateQualityMappings();
-
-	if(g_quality_mappings == INVALID_HANDLE) {
-		g_quality_mappings = CreateArray(TF2IDB_ITEMQUALITY_LENGTH);
-		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Normal, "normal");
-		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Rarity4, "rarity4");
-		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Strange, "strange");
-		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Unique, "unique");
-	}
-
 	g_id_cache = CreateTrie();
 	g_class_cache = CreateTrie();
 	g_slot_cache = CreateTrie();
@@ -154,6 +144,7 @@ public OnPluginStart() {
 
 	g_attribute_cache = CreateTrie();
 
+	//g_quality_mappings is initialized inside PrepareCache
 	PrepareCache();
 
 	/*
@@ -172,44 +163,6 @@ public OnPluginStart() {
 		PrintToServer("paint %i", GetArrayCell(paints, i));
 	}
 	*/
-}
-
-Handle:CreateQualityMappings() {
-
-	decl String:strFilePath[PLATFORM_MAX_PATH] = "scripts/items/items_game.txt";
-	if(!FileExists(strFilePath, true)) {
-		return INVALID_HANDLE;
-	}
-
-	new Handle:hItemSchema = CreateKeyValues("items_game");
-	if(!FileToKeyValues(hItemSchema, strFilePath)) {
-		CloseHandle(hItemSchema);
-		return INVALID_HANDLE;
-	}
-	KvRewind(hItemSchema);
-	new Handle:mappings = CreateArray(TF2IDB_ITEMQUALITY_LENGTH, _:TF2ItemQuality);	//size of the quality enum
-	new size = GetArraySize(mappings);
-	decl String:strQualityName[TF2IDB_ITEMQUALITY_LENGTH];
-
-	if(KvJumpToKey(hItemSchema, "qualities", false)) {
-		if(KvGotoFirstSubKey(hItemSchema)) {
-			do {
-				if (KvGetSectionName(hItemSchema, strQualityName, sizeof(strQualityName))) {
-					new val = KvGetNum(hItemSchema, "value", -1);
-					if (val >= size) {	//in case valve adds qualities
-						ResizeArray(mappings, val+1);
-						size = val+1;
-					}
-					if (val >= 0) {
-						SetArrayString(mappings, val, strQualityName);
-					}
-				}
-			}
-			while(KvGotoNextKey(hItemSchema));
-		}
-	}
-	CloseHandle(hItemSchema);
-	return mappings;
 }
 
 PrepareCache() {
@@ -243,6 +196,33 @@ PrepareCache() {
 			}
 		}
 		SetTrieArray(g_attribute_cache, id, values, NUM_ATT_CACHE_FIELDS);
+	}
+	CloseHandle(queryHandle);
+
+	new Handle:qualitySizeHandle = SQL_Query(g_db, "SELECT MAX(value) FROM tf2idb_qualities");
+	if (qualitySizeHandle != INVALID_HANDLE && SQL_FetchRow(qualitySizeHandle)) {
+		new size = SQL_FetchInt(qualitySizeHandle, 0);
+		CloseHandle(qualitySizeHandle);
+		g_quality_mappings = CreateArray(ByteCountToCells(TF2IDB_ITEMQUALITY_LENGTH), size);
+
+		queryHandle = SQL_Query(g_db, "SELECT name,val FROM tf2idb_qualities");
+		while(SQL_FetchRow(queryHandle)) {
+			new String:name[TF2IDB_ITEMQUALITY_LENGTH];
+			SQL_FetchString(queryHandle, 0, name, sizeof(name));
+			new value = SQL_FetchInt(queryHandle, 1);
+			SetArrayString(g_quality_mappings, value, name);
+		}
+		CloseHandle(queryHandle);
+	} else {
+		if (qualitySizeHandle != INVALID_HANDLE) {
+			CloseHandle(qualitySizeHandle);
+		}
+		//backup strats
+		g_quality_mappings = CreateArray(ByteCountToCells(TF2IDB_ITEMQUALITY_LENGTH), _:TF2ItemQuality);	//size of the quality enum
+		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Normal, "normal");
+		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Rarity4, "rarity4");
+		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Strange, "strange");
+		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Unique, "unique");
 	}
 }
 

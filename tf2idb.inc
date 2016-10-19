@@ -45,7 +45,9 @@ enum TF2ItemQuality {
 	TF2ItemQuality_Strange,
 	TF2ItemQuality_Completed,
 	TF2ItemQuality_Haunted,
-	TF2ItemQuality_ToborA
+	TF2ItemQuality_ToborA,
+	TF2ItemQuality_Collectors = 14,
+	TF2ItemQuality_PaintkitWeapon
 };
 
 //Most of these that return a bool return false if the ID is invalid/not found

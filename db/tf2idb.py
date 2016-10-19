@@ -38,6 +38,7 @@ def main():
     dbc.execute('DROP TABLE IF EXISTS new_tf2idb_equip_regions')
     dbc.execute('DROP TABLE IF EXISTS new_tf2idb_capabilities')
     dbc.execute('DROP TABLE IF EXISTS new_tf2idb_attributes')
+    dbc.execute('DROP TABLE IF EXISTS new_tf2idb_qualities')
 
     dbc.execute('CREATE TABLE "new_tf2idb_class" ("id" INTEGER NOT NULL , "class" TEXT NOT NULL , "slot" TEXT , PRIMARY KEY ("id", "class"))')
     dbc.execute('CREATE TABLE "new_tf2idb_item_attributes" ("id" INTEGER NOT NULL , "attribute" INTEGER NOT NULL , "value" TEXT NOT NULL, PRIMARY KEY ("id", "attribute") )')
@@ -78,12 +79,17 @@ def main():
         '"apply_tag_to_item_definition" TEXT'
         ')'
     )
+    dbc.execute('CREATE TABLE "new_tf2idb_qualities" ("name" TEXT PRIMARY KEY  NOT NULL , "value" INTEGER NOT NULL )');
 
     nonce = int(time.time())
     dbc.execute('CREATE INDEX "tf2idb_item_attributes_%i" ON "new_tf2idb_item_attributes" ("attribute" ASC)' % nonce)
     dbc.execute('CREATE INDEX "tf2idb_class_%i" ON "new_tf2idb_class" ("class" ASC)' % nonce)
     dbc.execute('CREATE INDEX "tf2idb_item_%i" ON "new_tf2idb_item" ("slot" ASC)' % nonce)
 
+
+    # qualities
+    for qname,qdata in data['qualities'].items():
+        dbc.execute('INSERT INTO new_tf2idb_qualities (name, value) VALUES (?,?)', (qname, qdata['value']))
 
     # particles
     for particle_type,particle_list in data['attribute_controlled_attached_particles'].items():
@@ -182,6 +188,7 @@ def main():
     replace_table('tf2idb_equip_regions')
     replace_table('tf2idb_capabilities')
     replace_table('tf2idb_attributes')
+    replace_table('tf2idb_qualities')
 
     dbc.execute('VACUUM')
     db.commit()
