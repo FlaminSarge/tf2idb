@@ -8,18 +8,41 @@ import vdf
 import sqlite3
 import traceback
 import time
+import collections
+
+#https://gist.github.com/angstwad/bf22d1822c38a92ec0a9
+def dict_merge(dct, merge_dct):
+    """ Recursive dict merge. Inspired by :meth:``dict.update()``, instead of
+    updating only top-level keys, dict_merge recurses down into dicts nested
+    to an arbitrary depth, updating keys. The ``merge_dct`` is merged into
+    ``dct``.
+    :param dct: dict onto which the merge is executed
+    :param merge_dct: dct merged into dct
+    :return: None
+    """
+    for k, v in merge_dct.items():
+        if (k == 'used_by_classes' or k == 'model_player_per_class'):    #handles Demoman vs demoman... Valve pls
+            v = dict((k2.lower(), v2) for k2, v2 in v.items())
+        if (k in dct and isinstance(dct[k], dict) and isinstance(v, collections.Mapping)):
+            dict_merge(dct[k], v)
+        else:
+            if (callable(getattr(v, "copy", None))):
+                dct[k] = v.copy()
+            else:
+                dct[k] = v
 
 def resolve_prefabs(item, data):
     prefabs = item.get('prefab')
+    prefab_aggregate = {}
     if prefabs:
-        prefab_aggregate = {}
         for prefab in prefabs.split():
-            prefab_data = data['prefabs'][prefab]
-            prefab_data = resolve_prefabs(prefab_data.copy(), data)
-            prefab_aggregate.update(prefab_data)
-        prefab_aggregate.update(item)
-        item = prefab_aggregate
-    return item
+            prefab_data = data['prefabs'][prefab].copy()
+            prefab_data = resolve_prefabs(prefab_data, data)
+            dict_merge(prefab_aggregate, prefab_data)
+        dict_merge(prefab_aggregate, item)
+    else:
+        prefab_aggregate = item.copy()
+    return prefab_aggregate
 
 def main():
     data = None
