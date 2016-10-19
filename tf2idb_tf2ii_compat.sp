@@ -274,6 +274,7 @@ public OnLibraryAdded(const String:strName[]) {
 public OnLibraryRemoved(const String:strName[]) {
 	if (StrEqual(strName, "tf2idb", false)) {
 		bSchemaLoaded = false;
+		Error(ERROR_BREAKP, _, "TF2IDB was unloaded, please reload this plugin");
 	}
 }
 
