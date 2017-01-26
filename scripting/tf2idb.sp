@@ -207,7 +207,7 @@ void PrepareCache() {
 		CloseHandle(qualitySizeHandle);
 		g_quality_mappings = CreateArray(ByteCountToCells(TF2IDB_ITEMQUALITY_LENGTH), size);
 
-		queryHandle = SQL_Query(g_db, "SELECT name,val FROM tf2idb_qualities");
+		queryHandle = SQL_Query(g_db, "SELECT name,value FROM tf2idb_qualities");
 		while(SQL_FetchRow(queryHandle)) {
 			char name[TF2IDB_ITEMQUALITY_LENGTH];
 			SQL_FetchString(queryHandle, 0, name, sizeof(name));
