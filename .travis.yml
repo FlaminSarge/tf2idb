@@ -1,0 +1,50 @@
+# Use the new container-based infrastructure
+sudo: false
+
+# Install some apt packages needed for spcomp
+addons:
+    apt_packages:
+        - lib32stdc++6
+        - python3
+
+# Set the build environment
+env:
+    - SMVERSION=1.8 # Stable
+    - SMVERSION=1.9 # Unstable
+
+# Allow the experimental branch to fail
+matrix:
+  fast_finish: true
+  allow_failures:
+    - env: SMVERSION=1.9
+
+install:
+    - wget --input-file=http://sourcemod.net/smdrop/$SMVERSION/sourcemod-latest-linux
+    - tar -xzf $(cat sourcemod-latest-linux)
+before_script:
+    - cp -r ./scripting ./addons/sourcemod
+    - chmod +x ./addons/sourcemod/scripting/spcomp
+    - mkdir ./plugins
+    - mkdir ./plugins/testsuite/
+    - wget https://raw.githubusercontent.com/chauffer/tf2itemsinfo/master/scripting/include/tf2itemsinfo.inc -O ./addons/sourcemod/scripting/include/tf2itemsinfo.inc
+# And compile!
+script: 
+    - ./addons/sourcemod/scripting/spcomp ./addons/sourcemod/scripting/tf2idb.sp -o./plugins/tf2idb.smx
+    - ./addons/sourcemod/scripting/spcomp ./addons/sourcemod/scripting/tf2idb_tf2ii_compat.sp -o./plugins/tf2idb_tf2ii_compat.smx
+    - ./addons/sourcemod/scripting/spcomp ./addons/sourcemod/scripting/testsuite/tf2itemsinfo_testkv.sp -o./plugins/testsuite/tf2itemsinfo_testkv.smx
+
+#before_deploy: zip -r release.zip ./translations/ ./plugins/ ./scripting/
+#
+#deploy:
+#    provider: releases
+#    api_key:
+#        secure: 
+#    file: "release.zip"
+#    skip_cleanup: true
+#    on:
+#        repo: fakuivan/project
+#        tags: true
+#
+# Notifications
+##notifications:
+#    email: false
