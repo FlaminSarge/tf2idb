@@ -9,7 +9,7 @@
 
 public void OnPluginStart() {
 	if (!TF2II_IsItemSchemaPrecached()) return;
-	Handle kv = TF2II_GetAttribKeyValues( 694 );
+	KeyValues kv = view_as<KeyValues>(TF2II_GetAttribKeyValues( 694 ));
 	char strFilePath[PLATFORM_MAX_PATH] = "data/tf2itemsinfo22.txt";
 	BuildPath( Path_SM, strFilePath, sizeof(strFilePath), strFilePath );
 	LogError("Written to %s", strFilePath);

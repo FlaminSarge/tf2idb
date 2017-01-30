@@ -64,15 +64,15 @@ native bool TF2IDB_GetItemLevels(int id, int &min, int &max);
 native int TF2IDB_GetItemAttributes(int id, int aid[TF2IDB_MAX_ATTRIBUTES], float values[TF2IDB_MAX_ATTRIBUTES]);
 
 //TF2IDB_GetItemEquipRegions returns an Array Handle containing a list of the equip region names for the item
-native Handle TF2IDB_GetItemEquipRegions(int id);
+native ArrayList TF2IDB_GetItemEquipRegions(int id);
 
 native bool TF2IDB_DoRegionsConflict(const char[] region1, const char[] region2);
 
 //TF2IDB_ListParticles returns an Array Handle containing a list of the particle IDs
-native Handle TF2IDB_ListParticles();
+native ArrayList TF2IDB_ListParticles();
 
 //TF2IDB_FindItemCustom returns an Array Handle containing a list of integers for the first column of the query result
-native Handle TF2IDB_FindItemCustom(const char[] query);
+native ArrayList TF2IDB_FindItemCustom(const char[] query);
 
 native bool TF2IDB_ItemHasAttribute(int id, int aid);
 
@@ -117,7 +117,7 @@ native TF2ItemQuality TF2IDB_GetQualityByName(const char[] string);
  * @return					A fully executed DBStatement handle, or INVALID_HANDLE if the statement
  *							execution failed. This handle must be closed by the calling plugin, even though it is owned by tf2idb.
  **/
-native DBStatement TF2IDB_CustomQuery(const char[] query, Handle arguments, int maxStringSize);
+native DBStatement TF2IDB_CustomQuery(const char[] query, ArrayList arguments, int maxStringSize);
 
 public SharedPlugin __pl_tf2idb = {
 	name = "tf2idb",
