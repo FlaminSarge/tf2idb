@@ -375,7 +375,7 @@ public Action Command_FindItems( int iClient, int nArgs )
 
 	int maxlen = TF2II_ITEMNAME_LENGTH;
 
-	Handle arguments = CreateArray(sizeof(strSearch)+4);
+	ArrayList arguments = CreateArray(sizeof(strSearch)+4);
 	Format(strSearch, sizeof(strSearch), "%%%s%%", strSearch);
 	PushArrayString(arguments, strSearch);
 	DBStatement resultStatement = TF2IDB_CustomQuery("SELECT id, name FROM tf2idb_item WHERE (name LIKE ?)", arguments, maxlen);
@@ -468,7 +468,7 @@ public Action Command_FindItemsByClass( int iClient, int nArgs )
 
 	int maxlen = TF2II_ITEMNAME_LENGTH;
 
-	Handle arguments = CreateArray(sizeof(strSearch)+4);
+	ArrayList arguments = CreateArray(sizeof(strSearch)+4);
 	Format(strSearch, sizeof(strSearch), "%%%s%%", strSearch);
 	PushArrayString(arguments, strSearch);
 	DBStatement resultStatement = TF2IDB_CustomQuery("SELECT id, name FROM tf2idb_item WHERE (class LIKE ?)", arguments, maxlen);
@@ -889,7 +889,7 @@ public Action Command_FindAttributes( int iClient, int nArgs )
 
 	int maxlen = TF2IDB_ATTRIBNAME_LENGTH;
 
-	Handle arguments = CreateArray(sizeof(strSearch)+4);
+	ArrayList arguments = CreateArray(sizeof(strSearch)+4);
 	Format(strSearch, sizeof(strSearch), "%%%s%%", strSearch);
 	PushArrayString(arguments, strSearch);
 	DBStatement resultStatement = TF2IDB_CustomQuery("SELECT id, name FROM tf2idb_attributes WHERE (name LIKE ?)", arguments, maxlen);
@@ -972,7 +972,7 @@ public Action Command_FindAttributesByClass( int iClient, int nArgs )
 	}
 	int maxlen = TF2IDB_ATTRIBCLASS_LENGTH;
 
-	Handle arguments = CreateArray(sizeof(strSearch)+4);
+	ArrayList arguments = CreateArray(sizeof(strSearch)+4);
 	Format(strSearch, sizeof(strSearch), "%%%s%%", strSearch);
 	PushArrayString(arguments, strSearch);
 	DBStatement resultStatement = TF2IDB_CustomQuery("SELECT id, name, attribute_class FROM tf2idb_attributes WHERE (attribute_class LIKE ?)", arguments, maxlen);
@@ -1094,7 +1094,7 @@ stock void ReloadConfigs()
 
 int GetAttribIDByName( const char[] strSearch ) {
 	int maxlen = 128;
-	Handle arguments = CreateArray(maxlen);
+	ArrayList arguments = CreateArray(maxlen);
 	PushArrayString(arguments, strSearch);
 	DBStatement resultStatement = TF2IDB_CustomQuery("SELECT id FROM tf2idb_attributes WHERE name=?", arguments, maxlen);
 	CloseHandle(arguments);
@@ -1199,7 +1199,7 @@ public int Native_GetToolType( Handle hPlugin, int nParams ) {
 }
 stock bool GetToolType(int iItemDefID, char[] strBuffer, int iBufferLength) {
 	char strId[16];
-	Handle arguments = CreateArray(16);
+	ArrayList arguments = CreateArray(16);
 	IntToString(iItemDefID, strId, sizeof(strId));
 	PushArrayString(arguments, strId);
 	DBStatement resultStatement = TF2IDB_CustomQuery("SELECT tool_type FROM tf2idb_item WHERE id=?", arguments, iBufferLength);
@@ -1412,7 +1412,7 @@ public int Native_GetAttribKeyValues( Handle hPlugin, int nParams )
 {
 	int maxlen = TF2IDB_ATTRIBNAME_LENGTH;
 	char strId[16];
-	Handle arguments = CreateArray(sizeof(strId));
+	ArrayList arguments = CreateArray(sizeof(strId));
 	IntToString(GetNativeCell(1), strId, sizeof(strId));
 	PushArrayString(arguments, strId);
 	DBStatement resultStatement = TF2IDB_CustomQuery("SELECT * FROM tf2idb_attributes WHERE id=?", arguments, maxlen);
@@ -1444,7 +1444,7 @@ public int Native_GetAttribKey( Handle hPlugin, int nParams )
 	char strKey[128];
 	GetNativeString( 2, strKey, sizeof(strKey) );
 	char strId[16];
-	Handle arguments = CreateArray(sizeof(strId));
+	ArrayList arguments = CreateArray(sizeof(strId));
 	IntToString(GetNativeCell(1), strId, sizeof(strId));
 	PushArrayString(arguments, strId);
 	Format(strKey, sizeof(strKey), "SELECT %s FROM tf2idb_attributes WHERE id=?", strKey);
@@ -1467,7 +1467,7 @@ public int Native_GetAttribKeyFloat( Handle hPlugin, int nParams )
 	char strKey[128];
 	GetNativeString( 2, strKey, sizeof(strKey) );
 	char strId[16];
-	Handle arguments = CreateArray(sizeof(strId));
+	ArrayList arguments = CreateArray(sizeof(strId));
 	IntToString(GetNativeCell(1), strId, sizeof(strId));
 	PushArrayString(arguments, strId);
 	Format(strKey, sizeof(strKey), "SELECT %s FROM tf2idb_attributes WHERE id=?", strKey);
@@ -1490,7 +1490,7 @@ public int Native_GetAttribKeyString( Handle hPlugin, int nParams )
 	char strKey[128];
 	GetNativeString( 2, strKey, sizeof(strKey) );
 	char strId[16];
-	Handle arguments = CreateArray(sizeof(strId));
+	ArrayList arguments = CreateArray(sizeof(strId));
 	IntToString(GetNativeCell(1), strId, sizeof(strId));
 	PushArrayString(arguments, strId);
 	Format(strKey, sizeof(strKey), "SELECT %s FROM tf2idb_attributes WHERE id=?", strKey);
@@ -1863,7 +1863,7 @@ stock int ItemData_GetString( int iItemDefID, ItemDataType iIDType, char[] strVa
 }
 stock bool GetItemMLName(int iItemDefID, char[] strBuffer, int iBufferLength) {
 	char strId[16];
-	Handle arguments = CreateArray(16);
+	ArrayList arguments = CreateArray(16);
 	IntToString(iItemDefID, strId, sizeof(strId));
 	PushArrayString(arguments, strId);
 	DBStatement resultStatement = TF2IDB_CustomQuery("SELECT item_name FROM tf2idb_item WHERE id=?", arguments, iBufferLength);
