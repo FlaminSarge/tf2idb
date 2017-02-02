@@ -1,3 +1,17 @@
-*.pyc
+## SourcePawn Base gitignore
+
+## Ignore compiled plugins
+/plugins
 *.smx
+
+## Ignore built databases
 *.sq3
+
+## Ignore python cache files
+*.pyc
+
+## If you are working with third party extensions/plugins.
+## You might want to uncomment this, unless your plugin is the one
+## that provides that functionality
+#/scripting/include/*.inc
+/scripting/include/tf2itemsinfo.inc
