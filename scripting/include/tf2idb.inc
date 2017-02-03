@@ -5,12 +5,12 @@
 
 #include <tf2>
 
-#define TF2IDB_MAX_ATTRIBUTES 			15
-#define TF2IDB_ITEMCLASS_LENGTH			64
-#define TF2IDB_ITEMSLOT_LENGTH			16
-#define TF2IDB_ITEMQUALITY_LENGTH		16
-#define TF2IDB_ATTRIBNAME_LENGTH		96
-#define TF2IDB_ATTRIBCLASS_LENGTH		32
+#define TF2IDB_MAX_ATTRIBUTES 			15	/**< Maximum number of attributes an item has */
+#define TF2IDB_ITEMCLASS_LENGTH			64	/**< Maximum item class name string length */
+#define TF2IDB_ITEMSLOT_LENGTH			16	/**< Maximum item slot string length */
+#define TF2IDB_ITEMQUALITY_LENGTH		16	/**< Maximum item quality string length */
+#define TF2IDB_ATTRIBNAME_LENGTH		96	/**< Maximum attribute name string length */
+#define TF2IDB_ATTRIBCLASS_LENGTH		32	/**< Maximum attribute class string length */
 
 enum TF2ItemSlot {
 	TF2ItemSlot_Primary = 0,
@@ -50,53 +50,273 @@ enum TF2ItemQuality {
 	TF2ItemQuality_PaintkitWeapon
 };
 
-//Most of these that return a bool return false if the ID is invalid/not found
-native bool:TF2IDB_IsValidItemID(id);
-native bool:TF2IDB_GetItemName(id, String:string[], length);
-native bool:TF2IDB_GetItemClass(id, String:string[], length);
-native bool:TF2IDB_GetItemSlotName(id, String:string[], length, TFClassType:classType=TFClass_Unknown);
-native TF2ItemSlot:TF2IDB_GetItemSlot(id, TFClassType:classType=TFClass_Unknown);
-native bool:TF2IDB_GetItemQualityName(id, String:string[], length);
-native TF2ItemQuality:TF2IDB_GetItemQuality(id);
-native bool:TF2IDB_GetItemLevels(id, &min, &max);
 
-//TF2IDB_GetItemAttributes returns the number of attributes found
-native TF2IDB_GetItemAttributes(id, aid[TF2IDB_MAX_ATTRIBUTES], Float:values[TF2IDB_MAX_ATTRIBUTES]);
+/**
+ * Checks whether an item ID is valid or not.
+ *
+ * @param id			Item ID.
+ * @return				True if valid item ID.
+ */
+native bool TF2IDB_IsValidItemID(int id);
 
-//TF2IDB_GetItemEquipRegions returns an Array Handle containing a list of the equip region names for the item
-native Handle:TF2IDB_GetItemEquipRegions(id);
+/**
+ * Retrives the name of an item given an item ID.
+ *
+ * @param id			Item ID.
+ * @param buffer		Buffer to the store the item's name.
+ * @param maxlength		Maximum length of the name buffer.
+ * @return				True if valid item ID.
+ */
+native bool TF2IDB_GetItemName(int id, char[] buffer, int maxlength);
 
-native bool:TF2IDB_DoRegionsConflict(const String:region1[], const String:region2[]);
+/**
+ * Retrives the class name of an item given an item ID.
+ * @note A valid class name could be "tf_weapon_sword".
+ *
+ * @param id			Item ID.
+ * @param buffer		Buffer to the store the item's class name.
+ * @param maxlength		Maximum length of the class name buffer.
+ * @return				True if valid item ID.
+ */
+native bool TF2IDB_GetItemClass(int id, char[] buffer, int maxlength);
 
-//TF2IDB_ListParticles returns an Array Handle containing a list of the particle IDs
-native Handle:TF2IDB_ListParticles();
+/**
+ * Retrives the slot name of an item given an item ID.
+ * @note A valid slot name could be "head", "taunt" or "melee".
+ *
+ * @param id			Item ID.
+ * @param buffer		Buffer to the store the item's slot name.
+ * @param maxlength		Maximum length of the slot name buffer.
+ * @param classType		A class that uses that item.
+ * @return				True if valid item ID and if that class can equip that item.
+ */
+native bool TF2IDB_GetItemSlotName(int id, char[] buffer, int maxlength, TFClassType classType=TFClass_Unknown);
 
-//TF2IDB_FindItemCustom returns an Array Handle containing a list of integers for the first column of the query result
-native Handle:TF2IDB_FindItemCustom(const String:query[]);
+/**
+ * Retrives the slot of an item given a valid item ID and a TFClassType.
+ *
+ * @param id			Item ID.
+ * @param classType		A class that uses that item.
+ * @return				A valid slot if a valid item ID maps to classType.
+ */
+native TF2ItemSlot TF2IDB_GetItemSlot(int id, TFClassType classType=TFClass_Unknown);
 
-native bool:TF2IDB_ItemHasAttribute(id, aid);
+/**
+ * Retrives the quality name for a given item ID.
+ *
+ * @param id			Item ID.
+ * @param buffer		Buffer to the store the item's quality name.
+ * @param maxlength		Maximum length of the quality name buffer.
+ * @return				True if valid item ID.
+ */
+native bool TF2IDB_GetItemQualityName(int id, char[] string, int length);
 
-//TF2IDB_UsedByClasses returns a bitfield (0bXXXXXXXXXX) of the classes that use this item
-//Check a particular class using e.g. (TF2IDB_UsedByClasses(id) & (1 << _:TFClass_Scout))
-//Note that this DOES INCLUDE TFClass_Unknown, as (1 << 0)
-native TF2IDB_UsedByClasses(id);
+/**
+ * Retrives the quality for a given item ID.
+ *
+ * @param id			Item ID.
+ * @return				Item quality.
+ */
+native TF2ItemQuality TF2IDB_GetItemQuality(int id);
+
+/**
+ * Retrives the maximum and minumum levels for a given item ID.
+ *
+ * @param id			Item ID.
+ * @param min			ByRef variable to store the minimum item level.
+ * @param max			ByRef variable to store the maximum item level.
+ * @return				True if valid item ID.
+ */
+native bool TF2IDB_GetItemLevels(int id, int &min, int &max);
+
+/**
+ * Retrives all attribute IDs and values for a given item ID.
+ *
+ * @param id			Item ID.
+ * @param attributeIds	Array of atrribute ids found for that item.
+ * @param max			Array of values for the attributes found.
+ * @return				Number of attributes found.
+ */
+native int TF2IDB_GetItemAttributes(int id, int attributeIds[TF2IDB_MAX_ATTRIBUTES], float values[TF2IDB_MAX_ATTRIBUTES]);
+
+/**
+ * Retrives all the equip region names for a given item ID.
+ *
+ * @param id			Item ID.
+ * @return				ArrayList containing the equip region names for the item ID.
+ */
+native ArrayList TF2IDB_GetItemEquipRegions(int id);
+
+/**
+ * Resolves if two regions conflict with each other.
+ *
+ * @param region1		First region to compare.
+ * @param region1		Second region to compare.
+ * @return				True if regions conflict.
+ */
+native bool TF2IDB_DoRegionsConflict(const char[] region1, const char[] region2);
+
+/**
+ * Returns a list that contains all particle IDs.
+ *
+ * @return				ArrayList containing all particle IDs.
+ */
+native ArrayList TF2IDB_ListParticles();
+
+/**
+ * Queries to the items database and returns a list of integers
+ * for the first column of the result set.
+ *
+ * @return				ArrayList of integers on the fist column.
+ */
+native ArrayList TF2IDB_FindItemCustom(const char[] query);
+
+/**
+ * Resolves whether or not an given item has an attribute.
+ *
+ * @param id			Item ID.
+ * @param attributeId	Attribute ID.
+ * @return				True if the item has that attribute.
+ */
+native bool TF2IDB_ItemHasAttribute(int id, int attributeId);
+
+/**
+ * Returns a bitfield of classes that use a certain item.
+ * @note You can check for a specific class by doing:
+ * ``TF2IDB_UsedByClasses(id) & (1 << view_as<int>(TFClass_Scout))``
+ * @note This DOES INCLUDE TFClass_Unknown, as (1 << 0)
+ *
+ * @param id			Item ID.
+ * @return				Bitfield of classes that use the item.
+ */
+native int TF2IDB_UsedByClasses(int id);
 
 //All return false if ID invalid/not found
-native bool:TF2IDB_IsValidAttributeID(id);
-native bool:TF2IDB_GetAttributeName(id, String:string[], length);
-native bool:TF2IDB_GetAttributeClass(id, String:string[], length);
-native bool:TF2IDB_GetAttributeType(id, String:string[], length);
-native bool:TF2IDB_GetAttributeDescString(id, String:string[], length);
-native bool:TF2IDB_GetAttributeDescFormat(id, String:string[], length);
-native bool:TF2IDB_GetAttributeEffectType(id, String:string[], length);
-native bool:TF2IDB_GetAttributeArmoryDesc(id, String:string[], length);
-native bool:TF2IDB_GetAttributeItemTag(id, String:string[], length);
 
-//TF2IDB_GetAttributeProperties copies the result to each field, -1 indicating the field was not present on the attribute
-native bool:TF2IDB_GetAttributeProperties(id, &hidden=-1, &stored_as_integer=-1, &is_set_bonus=-1, &is_user_generated=-1, &can_affect_recipe_component_name=-1);
+/**
+ * Checks whether an attribute ID is valid or not.
+ *
+ * @param attributeId	Attribute ID.
+ * @return				True if valid attribute ID.
+ */
+native bool TF2IDB_IsValidAttributeID(int attributeId);
 
-native bool:TF2IDB_GetQualityName(TF2ItemQuality:quality, String:string[], length);
-native TF2ItemQuality:TF2IDB_GetQualityByName(const String:string[]);
+/**
+ * Retrives the name of an item given an attribute ID.
+ *
+ * @param attributeId	Attribute ID.
+ * @param buffer		Buffer to the store the attribute's name.
+ * @param maxlength		Maximum length of the name buffer.
+ * @return				True if valid attribute ID.
+ */
+native bool TF2IDB_GetAttributeName(int attributeId, char[] buffer, int length);
+
+/**
+ * Retrives the class name of an attribute given an attribute ID.
+ *
+ * @param attributeId	Attribute ID.
+ * @param buffer		Buffer to the store the attribute class name.
+ * @param maxlength		Maximum length of the class name buffer.
+ * @return				True if valid attribute ID.
+ */
+native bool TF2IDB_GetAttributeClass(int attributeId, char[] buffer, int maxlength);
+
+/**
+ * Retrives the type name of an attribute given an attribute ID.
+ *
+ * @param attributeId	Attribute ID.
+ * @param buffer		Buffer to the store the attribute type name.
+ * @param maxlength		Maximum length of the type name buffer.
+ * @return				True if valid attribute ID.
+ */
+native bool TF2IDB_GetAttributeType(int attributeId, char[] buffer, int maxlength);
+
+/**
+ * Retrives the description string of an attribute given an attribute ID.
+ *
+ * @param attributeId	Attribute ID.
+ * @param buffer		Buffer to the store the description string.
+ * @param maxlength		Maximum length of the description string buffer.
+ * @return				True if valid attribute ID.
+ */
+native bool TF2IDB_GetAttributeDescString(int attributeId, char[] buffer, int maxlength);
+
+/**
+ * Retrives the description format of an attribute given an attribute ID.
+ *
+ * @param attributeId	Attribute ID.
+ * @param buffer		Buffer to the store the description format.
+ * @param maxlength		Maximum length of the description format buffer.
+ * @return				True if valid attribute ID.
+ */
+native bool TF2IDB_GetAttributeDescFormat(int attributeId, char[] buffer, int maxlength);
+
+/**
+ * Retrives the effect type of an attribute given an attribute ID.
+ *
+ * @param attributeId	Attribute ID.
+ * @param buffer		Buffer to the store the effect type.
+ * @param maxlength		Maximum length of the effect type buffer.
+ * @return				True if valid attribute ID.
+ */
+native bool TF2IDB_GetAttributeEffectType(int attributeId, char[] buffer, int maxlength);
+
+/**
+ * Retrives the armory description of an attribute given an attribute ID.
+ *
+ * @param attributeId	Attribute ID.
+ * @param buffer		Buffer to the store the armory description.
+ * @param maxlength		Maximum length of the armory description buffer.
+ * @return				True if valid attribute ID.
+ */
+native bool TF2IDB_GetAttributeArmoryDesc(int attributeId, char[] buffer, int maxlength);
+
+/**
+ * Retrives the item tag of an attribute given an attribute ID.
+ *
+ * @param attributeId	Attribute ID.
+ * @param buffer		Buffer to the store the item tag.
+ * @param maxlength		Maximum length of the item tag buffer.
+ * @return				True if valid attribute ID.
+ */
+native bool TF2IDB_GetAttributeItemTag(int attributeId, char[] buffer, int maxlength);
+
+/**
+ * Retrives the properties of an attribute given an attribute ID.
+ * @note -1 indicates that the field is not present on that attribute.
+ *
+ * @param attributeId						Attribute ID.
+ * @param hidden							ByRef value to store the propery "hidden".
+ * @param stored_as_integer					ByRef value to store the propery "stored_as_integer".
+ * @param is_set_bonus						ByRef value to store the propery "is_set_bonus".
+ * @param is_user_generated					ByRef value to store the propery "is_user_generated".
+ * @param can_affect_recipe_component_name	ByRef value to store the propery "can_affect_recipe_component_name".
+ * @return									True if valid attribute ID.
+ */
+native bool TF2IDB_GetAttributeProperties(int attributeId, 
+										  int &hidden=-1, 
+										  int &stored_as_integer=-1, 
+										  int &is_set_bonus=-1, 
+										  int &is_user_generated=-1, 
+										  int &can_affect_recipe_component_name=-1);
+
+/**
+ * Retrives the name of a quality given a quality.
+ *
+ * @param quality		Quality.
+ * @param buffer		Buffer to the store the quality name.
+ * @param maxlength		Maximum length of the quality name buffer.
+ * @return				True if valid quality and maxlength > 0.
+ */
+native bool TF2IDB_GetQualityName(TF2ItemQuality quality, char[] buffer, int maxlength);
+
+/**
+ * Retrives a quality given it's name.
+ *
+ * @param buffer		A quality name.
+ * @return				A TF2ItemQuality value.
+ */
+native TF2ItemQuality TF2IDB_GetQualityByName(const char[] buffer);
 
 /**
  * @brief	Execute a custom prepared statement on the TF2IDB tables, returning the executed DBStatement
@@ -117,9 +337,9 @@ native TF2ItemQuality:TF2IDB_GetQualityByName(const String:string[]);
  * @return					A fully executed DBStatement handle, or INVALID_HANDLE if the statement
  *							execution failed. This handle must be closed by the calling plugin, even though it is owned by tf2idb.
  **/
-native DBStatement:TF2IDB_CustomQuery(const String:query[], Handle:arguments, maxStringSize);
+native DBStatement TF2IDB_CustomQuery(const char[] query, ArrayList arguments, int maxStringSize);
 
-public SharedPlugin:__pl_tf2idb = {
+public SharedPlugin __pl_tf2idb = {
 	name = "tf2idb",
 	file = "tf2idb.smx",
 #if defined REQUIRE_PLUGIN
