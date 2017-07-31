@@ -221,8 +221,8 @@ def main():
     replace_table('tf2idb_attributes')
     replace_table('tf2idb_qualities')
 
-    dbc.execute('VACUUM')
     db.commit()
-    
+    dbc.execute('VACUUM')
+
 if __name__ == "__main__":
     main()
