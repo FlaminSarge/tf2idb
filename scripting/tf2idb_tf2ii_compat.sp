@@ -13,8 +13,8 @@
 #pragma semicolon 1
 
 #define PLUGIN_VERSION		"1.0.0"
-//#define PLUGIN_UPDATE_URL	"http://cdn.hop.tf/tf2itemsinfo/updatelist.txt"
-#define PLUGIN_UPDATE_URL ""
+//char PLUGIN_UPDATE_URL[] = "http://cdn.hop.tf/tf2itemsinfo/updatelist.txt";
+char PLUGIN_UPDATE_URL[] = "";
 
 ////////////////////////
 /* Plugin Information */
@@ -267,7 +267,7 @@ public OnLibraryAdded(const String:strName[]) {
 	}
 #if defined _updater_included
 	if (PLUGIN_UPDATE_URL[0] != '\0' && StrEqual(strName, "updater", false)) {
-        Updater_AddPlugin(PLUGIN_UPDATE_URL);
+        	Updater_AddPlugin(PLUGIN_UPDATE_URL);
 	}
 #endif
 }
