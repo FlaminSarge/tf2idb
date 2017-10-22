@@ -75,7 +75,7 @@ def main():
     dbc.execute('CREATE TABLE "new_tf2idb_item" ('
         '"id" INTEGER PRIMARY KEY NOT NULL,'
         '"name" TEXT NOT NULL,'
-        '"item_name" TEXT NOT NULL,'
+        '"item_name" TEXT,'
         '"class" TEXT NOT NULL,'
         '"slot" TEXT,'
         '"quality" TEXT NOT NULL,'
