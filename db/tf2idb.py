@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 TF_FOLDER = 'C:/Program Files (x86)/Steam/steamapps/common/Team Fortress 2/tf/'
 ITEMS_GAME = TF_FOLDER + 'scripts/items/items_game.txt'
 DB_FILE = 'tf2idb.sq3'
