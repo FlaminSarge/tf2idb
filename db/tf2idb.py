@@ -29,10 +29,7 @@ def dict_merge(dct, merge_dct):
         if (k in dct and isinstance(dct[k], dict) and isinstance(v, collections.Mapping)):
             dict_merge(dct[k], v)
         else:
-            if (callable(getattr(v, "copy", None))):
-                dct[k] = copy.deepcopy(v)
-            else:
-                dct[k] = v
+            dct[k] = copy.deepcopy(v)
 
 def resolve_prefabs(item, prefabs):
     # generate list of prefabs
