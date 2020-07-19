@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 
-TF_FOLDER = 'C:/Program Files (x86)/Steam/steamapps/common/Team Fortress 2/tf/'
-ITEMS_GAME = TF_FOLDER + 'scripts/items/items_game.txt'
-DB_FILE = 'tf2idb.sq3'
-
 # 12/18/2015
 
 import vdf
@@ -12,6 +8,7 @@ import traceback
 import time
 import collections
 import copy
+import argparse
 
 #https://gist.github.com/angstwad/bf22d1822c38a92ec0a9
 def dict_merge(dct, merge_dct):
@@ -47,12 +44,17 @@ def resolve_prefabs(item, prefabs):
     return result, prefab_list
 
 def main():
-    data = None
-    with open(ITEMS_GAME) as f:
-        data = vdf.parse(f)
-        data = data['items_game']
+    parser = argparse.ArgumentParser(
+        description='Builds the tf2idb database.')
+    parser.add_argument('manifest', type=argparse.FileType('r'),
+                        help='Path to the items_game.txt file')
+    parser.add_argument('db', type=str,
+                        help='Path to write the generated db')
+    args = parser.parse_args()
+    manifest, db_name = args.manifest, args.db
+    data = vdf.parse(manifest)['items_game']
 
-    db = sqlite3.connect(DB_FILE)
+    db = sqlite3.connect(db_name)
     dbc = db.cursor()
 
     dbc.execute('DROP TABLE IF EXISTS new_tf2idb_class')
