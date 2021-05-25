@@ -378,7 +378,7 @@ public Native_GetItemQuality(Handle:hPlugin, nParams) {
 	new id = GetNativeCell(1);
 	decl String:qualityString[16];
 	new TF2ItemQuality:quality = TF2ItemQuality_Normal;
-	if(TF2IDB_GetItemSlotName(id, qualityString, sizeof(qualityString))) {
+	if(TF2IDB_GetItemQualityName(id, qualityString, sizeof(qualityString))) {
 		quality = GetQualityByName(qualityString);
 	}
 	return _:(quality > TF2ItemQuality_Normal ? quality : TF2ItemQuality_Normal);
