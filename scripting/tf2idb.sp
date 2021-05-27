@@ -1,6 +1,8 @@
 #define PLUGIN_VERSION "0.94.0"
 
-public Plugin:myinfo = {
+#pragma newdecls required
+
+public Plugin myinfo = {
 	name		= "TF2IDB",
 	author	  	= "Bottiger, FlaminSarge",
 	description = "TF2 Item Schema Database",
@@ -11,7 +13,7 @@ public Plugin:myinfo = {
 #include <tf2>
 #include <tf2idb>
 
-public APLRes:AskPluginLoad2(Handle:hPlugin, bool:bLateLoad, String:sError[], iErrorSize) {
+public APLRes AskPluginLoad2(Handle hPlugin, bool bLateLoad, char[] sError, int iErrorSize) {
 	CreateNative("TF2IDB_IsValidItemID", Native_IsValidItemID);
 	CreateNative("TF2IDB_GetItemName", Native_GetItemName);
 	CreateNative("TF2IDB_GetItemClass", Native_GetItemClass);
@@ -48,52 +50,52 @@ public APLRes:AskPluginLoad2(Handle:hPlugin, bool:bLateLoad, String:sError[], iE
 	return APLRes_Success;
 }
 
-new Handle:g_db;
+Handle g_db;
 
-//new Handle:g_statement_IsValidItemID;
-new Handle:g_statement_GetItemClass;
-new Handle:g_statement_GetItemName;
-new Handle:g_statement_GetItemSlotName;
-new Handle:g_statement_GetItemQualityName;
-new Handle:g_statement_GetItemLevels;
-new Handle:g_statement_GetItemAttributes;
-new Handle:g_statement_GetItemEquipRegions;
-new Handle:g_statement_ListParticles;
-new Handle:g_statement_DoRegionsConflict;
-new Handle:g_statement_ItemHasAttribute;
-new Handle:g_statement_GetItemSlotNameByClass;
-new Handle:g_statement_UsedByClasses;
+//Handle g_statement_IsValidItemID;
+Handle g_statement_GetItemClass;
+Handle g_statement_GetItemName;
+Handle g_statement_GetItemSlotName;
+Handle g_statement_GetItemQualityName;
+Handle g_statement_GetItemLevels;
+Handle g_statement_GetItemAttributes;
+Handle g_statement_GetItemEquipRegions;
+Handle g_statement_ListParticles;
+Handle g_statement_DoRegionsConflict;
+Handle g_statement_ItemHasAttribute;
+Handle g_statement_GetItemSlotNameByClass;
+Handle g_statement_UsedByClasses;
 
-//new Handle:g_statement_IsValidAttributeID;
-new Handle:g_statement_GetAttributeName;
-new Handle:g_statement_GetAttributeClass;
-new Handle:g_statement_GetAttributeType;
-new Handle:g_statement_GetAttributeDescString;
-new Handle:g_statement_GetAttributeDescFormat;
-new Handle:g_statement_GetAttributeEffectType;
-new Handle:g_statement_GetAttributeArmoryDesc;
-new Handle:g_statement_GetAttributeItemTag;
+//Handle g_statement_IsValidAttributeID;
+Handle g_statement_GetAttributeName;
+Handle g_statement_GetAttributeClass;
+Handle g_statement_GetAttributeType;
+Handle g_statement_GetAttributeDescString;
+Handle g_statement_GetAttributeDescFormat;
+Handle g_statement_GetAttributeEffectType;
+Handle g_statement_GetAttributeArmoryDesc;
+Handle g_statement_GetAttributeItemTag;
 
-new Handle:g_slot_mappings;
-new Handle:g_quality_mappings;
+Handle g_slot_mappings;
+Handle g_quality_mappings;
 
-new Handle:g_id_cache;
-new Handle:g_class_cache;
-new Handle:g_slot_cache;
-new Handle:g_minlevel_cache;
-new Handle:g_maxlevel_cache;
+Handle g_id_cache;
+Handle g_class_cache;
+Handle g_slot_cache;
+Handle g_minlevel_cache;
+Handle g_maxlevel_cache;
 
 #define NUM_ATT_CACHE_FIELDS 5
-new Handle:g_attribute_cache;
+Handle g_attribute_cache;
 
-new String:g_class_mappings[][] = {
+char g_class_mappings[][] = {
 	"unknown", "scout", "sniper", "soldier", "demoman", "medic", "heavy", "pyro", "spy", "engineer"
 };
 
-public OnPluginStart() {
+public void OnPluginStart() {
 	CreateConVar("sm_tf2idb_version", PLUGIN_VERSION, "TF2IDB version", FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_SPONLY);
 
-	decl String:error[255];
+	char error[255];
 	g_db = SQLite_UseDatabase("tf2idb", error, sizeof(error));
 	if(g_db == INVALID_HANDLE)
 		SetFailState(error);
@@ -148,34 +150,34 @@ public OnPluginStart() {
 	PrepareCache();
 
 	/*
-	decl aids[TF2IDB_MAX_ATTRIBUTES];
-	decl Float:values[TF2IDB_MAX_ATTRIBUTES];
-	new attributes = TF2IDB_GetItemAttributes(424, aids, values);
+	int aids[TF2IDB_MAX_ATTRIBUTES];
+	float values[TF2IDB_MAX_ATTRIBUTES];
+	int attributes = TF2IDB_GetItemAttributes(424, aids, values);
 	PrintToServer("TF2IDB_ItemHasAttribute: %i", attributes);
-	for(new i=0;i<attributes;i++) {
+	for(int i=0;i<attributes;i++) {
 		PrintToServer("aid %i value %f", aids[i], values[i]);
 	}
 
 	PrintItem(43);
-	new Handle:paints = TF2IDB_FindItemCustom("SELECT id FROM tf2idb_item WHERE tool_type='paint_can'");
+	Handle paints = TF2IDB_FindItemCustom("SELECT id FROM tf2idb_item WHERE tool_type='paint_can'");
 
-	for(new i=0;i<GetArraySize(paints);i++) {
+	for(int i=0;i<GetArraySize(paints);i++) {
 		PrintToServer("paint %i", GetArrayCell(paints, i));
 	}
 	*/
 }
 
-PrepareCache() {
-	new Handle:queryHandle = SQL_Query(g_db, "SELECT id,class,slot,min_ilevel,max_ilevel FROM tf2idb_item");
+void PrepareCache() {
+	Handle queryHandle = SQL_Query(g_db, "SELECT id,class,slot,min_ilevel,max_ilevel FROM tf2idb_item");
 	while(SQL_FetchRow(queryHandle)) {
-		decl String:slot[TF2IDB_ITEMSLOT_LENGTH];
-		decl String:class[TF2IDB_ITEMCLASS_LENGTH];
-		decl String:id[16];
+		char slot[TF2IDB_ITEMSLOT_LENGTH];
+		char class[TF2IDB_ITEMCLASS_LENGTH];
+		char id[16];
 		SQL_FetchString(queryHandle, 0, id, sizeof(id));
 		SQL_FetchString(queryHandle, 1, class, sizeof(class));
 		SQL_FetchString(queryHandle, 2, slot, sizeof(slot));
-		new min_level = SQL_FetchInt(queryHandle, 3);
-		new max_level = SQL_FetchInt(queryHandle, 4);
+		int min_level = SQL_FetchInt(queryHandle, 3);
+		int max_level = SQL_FetchInt(queryHandle, 4);
 
 		SetTrieValue(g_id_cache, id, 1);
 		SetTrieString(g_class_cache, id, class);
@@ -187,10 +189,10 @@ PrepareCache() {
 
 	queryHandle = SQL_Query(g_db, "SELECT id,hidden,stored_as_integer,is_set_bonus,is_user_generated,can_affect_recipe_component_name FROM tf2idb_attributes");
 	while(SQL_FetchRow(queryHandle)) {
-		new String:id[16];
-		new values[NUM_ATT_CACHE_FIELDS] = { -1, ... };
+		char id[16];
+		int values[NUM_ATT_CACHE_FIELDS] = { -1, ... };
 		SQL_FetchString(queryHandle, 0, id, sizeof(id));
-		for(new i = 0; i < NUM_ATT_CACHE_FIELDS; i++) {
+		for(int i = 0; i < NUM_ATT_CACHE_FIELDS; i++) {
 			if(!SQL_IsFieldNull(queryHandle, i)) {
 				values[i] = SQL_FetchInt(queryHandle, i+1);
 			}
@@ -199,17 +201,17 @@ PrepareCache() {
 	}
 	CloseHandle(queryHandle);
 
-	new Handle:qualitySizeHandle = SQL_Query(g_db, "SELECT MAX(value) FROM tf2idb_qualities");
+	Handle qualitySizeHandle = SQL_Query(g_db, "SELECT MAX(value) FROM tf2idb_qualities");
 	if (qualitySizeHandle != INVALID_HANDLE && SQL_FetchRow(qualitySizeHandle)) {
-		new size = SQL_FetchInt(qualitySizeHandle, 0);
+		int size = SQL_FetchInt(qualitySizeHandle, 0);
 		CloseHandle(qualitySizeHandle);
 		g_quality_mappings = CreateArray(ByteCountToCells(TF2IDB_ITEMQUALITY_LENGTH), size + 1);
 
 		queryHandle = SQL_Query(g_db, "SELECT name,value FROM tf2idb_qualities");
 		while(SQL_FetchRow(queryHandle)) {
-			new String:name[TF2IDB_ITEMQUALITY_LENGTH];
+			char name[TF2IDB_ITEMQUALITY_LENGTH];
 			SQL_FetchString(queryHandle, 0, name, sizeof(name));
-			new value = SQL_FetchInt(queryHandle, 1);
+			int value = SQL_FetchInt(queryHandle, 1);
 			SetArrayString(g_quality_mappings, value, name);
 		}
 		CloseHandle(queryHandle);
@@ -218,38 +220,38 @@ PrepareCache() {
 			CloseHandle(qualitySizeHandle);
 		}
 		//backup strats
-		g_quality_mappings = CreateArray(ByteCountToCells(TF2IDB_ITEMQUALITY_LENGTH), _:TF2ItemQuality);	//size of the quality enum
-		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Normal, "normal");
-		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Rarity4, "rarity4");
-		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Strange, "strange");
-		SetArrayString(g_quality_mappings, _:TF2ItemQuality_Unique, "unique");
+		g_quality_mappings = CreateArray(ByteCountToCells(TF2IDB_ITEMQUALITY_LENGTH), view_as<int>(TF2ItemQuality));	//size of the quality enum
+		SetArrayString(g_quality_mappings, view_as<int>(TF2ItemQuality_Normal), "normal");
+		SetArrayString(g_quality_mappings, view_as<int>(TF2ItemQuality_Rarity4), "rarity4");
+		SetArrayString(g_quality_mappings, view_as<int>(TF2ItemQuality_Strange), "strange");
+		SetArrayString(g_quality_mappings, view_as<int>(TF2ItemQuality_Unique), "unique");
 	}
 }
 
-stock PrintItem(id) {
-	new bool:valid = TF2IDB_IsValidItemID(id);
+stock void PrintItem(int id) {
+	bool valid = TF2IDB_IsValidItemID(id);
 	if(!valid) {
 		PrintToServer("Invalid Item %i", id);
 		return;
 	}
 
-	decl String:name[64];
+	char name[64];
 	TF2IDB_GetItemName(43, name, sizeof(name));
 
 	PrintToServer("%i - %s", id, name);
 	PrintToServer("slot %i - quality %i", TF2IDB_GetItemSlot(id), TF2IDB_GetItemQuality(id));
 
-	new min,max;
+	int min,max;
 	TF2IDB_GetItemLevels(id, min, max);
 	PrintToServer("Level %i - %i", min, max);
 }
 
-public Native_IsValidItemID(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	decl String:strId[16];
+public int Native_IsValidItemID(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	char strId[16];
 	IntToString(id, strId, sizeof(strId));
-	new junk;
-	return GetTrieValue(g_id_cache, strId, junk);
+	int junk;
+	return view_as<int>(GetTrieValue(g_id_cache, strId, junk));
 	/*
 	SQL_BindParamInt(g_statement_IsValidItemID, 0, id);
 	SQL_Execute(g_statement_IsValidItemID);
@@ -257,55 +259,55 @@ public Native_IsValidItemID(Handle:hPlugin, nParams) {
 	*/
 }
 
-public Native_GetItemClass(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new size = GetNativeCell(3);
+public int Native_GetItemClass(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int size = GetNativeCell(3);
 
-	decl String:strId[16];
+	char strId[16];
 	IntToString(id, strId, sizeof(strId));
-	decl String:class[size];
+	char[] class = new char[size];
 
 	if(GetTrieString(g_class_cache, strId, class, size)) {
 		SetNativeString(2, class, size);
-		return true;
+		return view_as<int>(true);
 	}
-	return false;
+	return view_as<int>(false);
 
 	/*
 	SQL_BindParamInt(g_statement_GetItemClass, 0, id);
 	SQL_Execute(g_statement_GetItemClass);
 	if(SQL_FetchRow(g_statement_GetItemClass)) {
-		decl String:buffer[size];
+		char[] buffer = new char[size];
 		SQL_FetchString(g_statement_GetItemClass, 0, buffer, size);
 		SetNativeString(2, buffer, size);
-		return true;
+		return view_as<int>(true);
 	} else {
-		return false;
+		return view_as<int>(false);
 	}
 	*/
 }
 
-public Native_GetItemName(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new size = GetNativeCell(3);
+public int Native_GetItemName(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int size = GetNativeCell(3);
 	SQL_BindParamInt(g_statement_GetItemName, 0, id);
 	SQL_Execute(g_statement_GetItemName);
 	if(SQL_FetchRow(g_statement_GetItemName)) {
-		decl String:buffer[size];
+		char[] buffer = new char[size];
 		SQL_FetchString(g_statement_GetItemName, 0, buffer, size);
 		SetNativeString(2, buffer, size);
-		return true;
+		return view_as<int>(true);
 	} else {
-		return false;
+		return view_as<int>(false);
 	}
 }
 
-public Native_GetItemSlotName(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new size = GetNativeCell(3);
-	new TFClassType:classType = (nParams >= 4) ? GetNativeCell(4) : TFClass_Unknown;
+public int Native_GetItemSlotName(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int size =GetNativeCell(3);
+	TFClassType classType = (nParams >= 4) ? GetNativeCell(4) : TFClass_Unknown;
 
-	decl String:slot[size];
+	char[] slot = new char[size];
 
 	if(classType != TFClass_Unknown) {
 		SQL_BindParamInt(g_statement_GetItemSlotNameByClass, 0, id);
@@ -317,112 +319,113 @@ public Native_GetItemSlotName(Handle:hPlugin, nParams) {
 			if(!SQL_IsFieldNull(g_statement_GetItemSlotNameByClass, 0)) {
 				SQL_FetchString(g_statement_GetItemSlotNameByClass, 0, slot, size);
 				SetNativeString(2, slot, size);
-				return true;
+				return view_as<int>(true);
 			}
 		}
 	}
 
-	decl String:strId[16];
+	char strId[16];
 	IntToString(id, strId, sizeof(strId));
 
 	if(GetTrieString(g_slot_cache, strId, slot, size)) {
 		SetNativeString(2, slot, size);
-		return true;
+		return view_as<int>(true);
 	}
-	return false;
+	return view_as<int>(false);
 
 	/*
 	SQL_BindParamInt(g_statement_GetItemSlotName, 0, id);
 	SQL_Execute(g_statement_GetItemSlotName);
 	if(SQL_FetchRow(g_statement_GetItemSlotName)) {
-		decl String:buffer[size];
+		char[] buffer = new char[size];
+		
 		SQL_FetchString(g_statement_GetItemSlotName, 0, buffer, size);
 		SetNativeString(2, buffer, size);
-		return true;
+		return view_as<int>(true);
 	} else {
-		return false;
+		return view_as<int>(false);
 	}
 	*/
 }
 
-public Native_GetItemSlot(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	decl String:slotString[16];
-	new TFClassType:classType = (nParams >= 2) ? GetNativeCell(2) : TFClass_Unknown;
+public int Native_GetItemSlot(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	char slotString[16];
+	TFClassType classType = (nParams >= 2) ? GetNativeCell(2) : TFClass_Unknown;
 
 	if(TF2IDB_GetItemSlotName(id, slotString, sizeof(slotString), classType)) {
-		new TF2ItemSlot:slot;
+		TF2ItemSlot slot;
 		if(GetTrieValue(g_slot_mappings, slotString, slot)) {
-			return _:slot;
+			return view_as<int>(slot);
 		}
 	}
 	return -1;
 }
 
-public Native_GetItemQualityName(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new size = GetNativeCell(3);
+public int Native_GetItemQualityName(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int size =GetNativeCell(3);
 	SQL_BindParamInt(g_statement_GetItemQualityName, 0, id);
 	SQL_Execute(g_statement_GetItemQualityName);
 	if(SQL_FetchRow(g_statement_GetItemQualityName)) {
-		decl String:buffer[size];
+		char[] buffer = new char[size];
 		SQL_FetchString(g_statement_GetItemQualityName, 0, buffer, size);
 		SetNativeString(2, buffer, size);
-		return true;
+		return view_as<int>(true);
 	} else {
-		return false;
+		return view_as<int>(false);
 	}
 }
 
-public Native_GetItemQuality(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	decl String:qualityString[16];
-	new TF2ItemQuality:quality = TF2ItemQuality_Normal;
+public int Native_GetItemQuality(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	char qualityString[16];
+	TF2ItemQuality quality = TF2ItemQuality_Normal;
 	if(TF2IDB_GetItemSlotName(id, qualityString, sizeof(qualityString))) {
 		quality = GetQualityByName(qualityString);
 	}
-	return _:(quality > TF2ItemQuality_Normal ? quality : TF2ItemQuality_Normal);
+	return view_as<int>((quality > TF2ItemQuality_Normal ? quality : TF2ItemQuality_Normal));
 }
 
-public Native_GetItemLevels(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	decl String:strId[16];
+public int Native_GetItemLevels(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	char strId[16];
 	IntToString(id, strId, sizeof(strId));
-	new min,max;
-	new bool:exists = GetTrieValue(g_minlevel_cache, strId, min);
+	int min,max;
+	bool exists = GetTrieValue(g_minlevel_cache, strId, min);
 	GetTrieValue(g_maxlevel_cache, strId, max);
 	if(exists) {
 		SetNativeCellRef(2, min);
 		SetNativeCellRef(3, max);
 	}
-	return exists;
+	return view_as<int>(exists);
 
 	/*
 	SQL_BindParamInt(g_statement_GetItemLevels, 0, id);
 	SQL_Execute(g_statement_GetItemLevels);
 	if(SQL_FetchRow(g_statement_GetItemLevels)) {
-		new min = SQL_FetchInt(g_statement_GetItemLevels, 0);
-		new max = SQL_FetchInt(g_statement_GetItemLevels, 1);
+		int min = SQL_FetchInt(g_statement_GetItemLevels, 0);
+		int max = SQL_FetchInt(g_statement_GetItemLevels, 1);
 		SetNativeCellRef(2, min);
 		SetNativeCellRef(3, max);
-		return true;
+		return view_as<int>(true);
 	} else {
-		return false;
+		return view_as<int>(false);
 	}
 	*/
 }
 
-public Native_GetItemAttributes(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	decl aids[TF2IDB_MAX_ATTRIBUTES];
-	decl Float:values[TF2IDB_MAX_ATTRIBUTES];
+public int Native_GetItemAttributes(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int aids[TF2IDB_MAX_ATTRIBUTES];
+	float values[TF2IDB_MAX_ATTRIBUTES];
 	SQL_BindParamInt(g_statement_GetItemAttributes, 0, id);
 	SQL_Execute(g_statement_GetItemAttributes);
 
-	new index;
+	int index;
 	while(SQL_FetchRow(g_statement_GetItemAttributes)) {
-		new aid = SQL_FetchInt(g_statement_GetItemAttributes, 0);
-		new Float:value = SQL_FetchFloat(g_statement_GetItemAttributes, 1);
+		int aid = SQL_FetchInt(g_statement_GetItemAttributes, 0);
+		float value = SQL_FetchFloat(g_statement_GetItemAttributes, 1);
 		aids[index] = aid;
 		values[index] = value;
 		index++;
@@ -436,157 +439,157 @@ public Native_GetItemAttributes(Handle:hPlugin, nParams) {
 	return index;
 }
 
-public Native_GetItemEquipRegions(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
+public int Native_GetItemEquipRegions(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
 	SQL_BindParamInt(g_statement_GetItemEquipRegions, 0, id);
-	new Handle:list = CreateArray(ByteCountToCells(16));
+	Handle list = CreateArray(ByteCountToCells(16));
 	SQL_Execute(g_statement_GetItemEquipRegions);
 	while(SQL_FetchRow(g_statement_GetItemEquipRegions)) {
-		decl String:buffer[16];
+		char buffer[16];
 		SQL_FetchString(g_statement_GetItemEquipRegions, 0, buffer, sizeof(buffer));
 		PushArrayString(list, buffer);
 	}
-	new Handle:output = CloneHandle(list, hPlugin);
+	Handle output = CloneHandle(list, hPlugin);
 	CloseHandle(list);
-	return _:output;
+	return view_as<int>(output);
 }
 
-public Native_ListParticles(Handle:hPlugin, nParams) {
-	new Handle:list = CreateArray();
+public int Native_ListParticles(Handle hPlugin, int nParams) {
+	Handle list = CreateArray();
 	SQL_Execute(g_statement_ListParticles);
 	while(SQL_FetchRow(g_statement_ListParticles)) {
-		new effect = SQL_FetchInt(g_statement_ListParticles, 0);
+		int effect = SQL_FetchInt(g_statement_ListParticles, 0);
 		if(effect > 5 && effect < 2000 && effect != 20 && effect != 28)
 			PushArrayCell(list, effect);
 	}
-	new Handle:output = CloneHandle(list, hPlugin);
+	Handle output = CloneHandle(list, hPlugin);
 	CloseHandle(list);
-	return _:output;
+	return view_as<int>(output);
 }
 
-public Native_DoRegionsConflict(Handle:hPlugin, nParams) {
-	decl String:region1[16];
-	decl String:region2[16];
+public int Native_DoRegionsConflict(Handle hPlugin, int nParams) {
+	char region1[16];
+	char region2[16];
 	GetNativeString(1, region1, sizeof(region1));
 	GetNativeString(2, region2, sizeof(region2));
 	SQL_BindParamString(g_statement_DoRegionsConflict, 0, region1, false);
 	SQL_BindParamString(g_statement_DoRegionsConflict, 1, region2, false);
 	SQL_Execute(g_statement_DoRegionsConflict);
-	return SQL_GetRowCount(g_statement_DoRegionsConflict) > 0;
+	return view_as<int>(SQL_GetRowCount(g_statement_DoRegionsConflict) > 0);
 }
 
-public Native_FindItemCustom(Handle:hPlugin, nParams) {
-	new length;
+public int Native_FindItemCustom(Handle hPlugin, int nParams) {
+	int length;
 	GetNativeStringLength(1, length);
-	decl String:query[length+1];
+	char[] query = new char[length+1];
 	GetNativeString(1, query, length+1);
 
-	new Handle:queryHandle = SQL_Query(g_db, query);
+	Handle queryHandle = SQL_Query(g_db, query);
 	if(queryHandle == INVALID_HANDLE)
-		return _:INVALID_HANDLE;
-	new Handle:list = CreateArray();
+		return view_as<int>(INVALID_HANDLE);
+	Handle list = CreateArray();
 	while(SQL_FetchRow(queryHandle)) {
-		new id = SQL_FetchInt(queryHandle, 0);
+		int id = SQL_FetchInt(queryHandle, 0);
 		PushArrayCell(list, id);
 	}
 	CloseHandle(queryHandle);
-	new Handle:output = CloneHandle(list, hPlugin);
+	Handle output = CloneHandle(list, hPlugin);
 	CloseHandle(list);
-	return _:output;
+	return view_as<int>(output);
 }
 
-public Native_CustomQuery(Handle:hPlugin, nParams) {
-	new length;
+public int Native_CustomQuery(Handle hPlugin, int nParams) {
+	int length;
 	GetNativeStringLength(1, length);
-	new String:query[length+1];
+	char[] query = new char[length+1];
 	GetNativeString(1, query, length+1);
-	new String:error[256];
-	new Handle:queryHandle = SQL_PrepareQuery(g_db, query, error, sizeof(error));
-	new ArrayList:arguments = ArrayList:GetNativeCell(2);
-	new argSize = GetArraySize(arguments);
-	new maxlen = GetNativeCell(3);
-	new String:buf[maxlen];
-	for(new i = 0; i < argSize; i++) {
+	char error[256];	
+	Handle queryHandle = SQL_PrepareQuery(g_db, query, error, sizeof(error));
+	ArrayList arguments = view_as<ArrayList>(GetNativeCell(2));
+	int argSize = GetArraySize(arguments);
+	int maxlen = GetNativeCell(3);
+	char[] buf = new char[maxlen];
+	for(int i = 0; i < argSize; i++) {
 		GetArrayString(arguments, i, buf, maxlen);
 		SQL_BindParamString(queryHandle, i, buf, true);
 	}
 	if(SQL_Execute(queryHandle)) {
-		return _:queryHandle;
+		return view_as<int>(queryHandle);
 	} else {
 		if (queryHandle != INVALID_HANDLE) {
 			CloseHandle(queryHandle);
 		}
 	}
-	return _:INVALID_HANDLE;
+	return view_as<int>(INVALID_HANDLE);
 
-/*	new numFields = SQL_GetFieldCount(queryHandle);
+/*	int numFields = SQL_GetFieldCount(queryHandle);
 	if(numFields <= 0) {
-		return _:INVALID_HANDLE;
+		return view_as<int>(INVALID_HANDLE);
 	}
-	new Handle:results[numFields];
-	for(new i = 0; i < numFields; i++) {
-		new Handle:temp = CreateArray(maxlen);
+	Handle results[numFields];
+	for(int i = 0; i < numFields; i++) {
+		Handle temp = CreateArray(maxlen);
 		results[i] = CloneHandle(temp, hPlugin);
 		CloseHandle(temp);
 		SQL_FieldNumToName(queryHandle, i, buf, maxlen);
 		PushArrayString(results[i], buf);
 	}
 	while(SQL_FetchRow(queryHandle)) {
-		for(new i = 0; i < numFields; i++) {
+		for(int i = 0; i < numFields; i++) {
 			SQL_FetchString(queryHandle, i, buf, maxlen);
 			PushArrayString(results[i], buf);
 		}
 	}
-	new Handle:temp = CreateArray();
-	new Handle:retVal = CloneHandle(temp, hPlugin);
+	Handle temp = CreateArray();
+	Handle retVal = CloneHandle(temp, hPlugin);
 	CloseHandle(temp);
 	PushArrayCell(retVal, GetArraySize(results[0]));
-	for(new i = 0; i < numFields; i++) {
+	for(int i = 0; i < numFields; i++) {
 		PushArrayCell(retVal, results[i]);
 	}
-	return _:retVal;
+	return view_as<int>(retVal);
 */
 }
 
-public Native_ItemHasAttribute(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new aid = GetNativeCell(2);
+public int Native_ItemHasAttribute(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int aid = GetNativeCell(2);
 
 	SQL_BindParamInt(g_statement_ItemHasAttribute, 0, id);
 	SQL_BindParamInt(g_statement_ItemHasAttribute, 1, aid);
 	SQL_Execute(g_statement_ItemHasAttribute);
 
 	if(SQL_FetchRow(g_statement_ItemHasAttribute)) {
-		return SQL_GetRowCount(g_statement_ItemHasAttribute) > 0;
+		return view_as<int>(SQL_GetRowCount(g_statement_ItemHasAttribute) > 0);
 	}
-	return false;
+	return view_as<int>(false);
 }
 
-public Native_UsedByClasses(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new String:class[16];
-	new result = 0;
+public int Native_UsedByClasses(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	char class[16];
+	int result = 0;
 	
 	SQL_BindParamInt(g_statement_UsedByClasses, 0, id);
 	SQL_Execute(g_statement_UsedByClasses);
 	
 	while (SQL_FetchRow(g_statement_UsedByClasses)) {
 		if (SQL_FetchString(g_statement_UsedByClasses, 0, class, sizeof(class)) > 0) {
-			result |= (1 << _:TF2_GetClass(class));
+			result |= (1 << view_as<int>(TF2_GetClass(class)));
 		}
 	}
 	return result;
 }
 
-public Native_IsValidAttributeID(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	decl String:strId[16];
+public int Native_IsValidAttributeID(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	char strId[16];
 	IntToString(id, strId, sizeof(strId));
-	new junk[NUM_ATT_CACHE_FIELDS];
-	return GetTrieArray(g_attribute_cache, strId, junk, NUM_ATT_CACHE_FIELDS);
+	int junk[NUM_ATT_CACHE_FIELDS];
+	return view_as<int>(GetTrieArray(g_attribute_cache, strId, junk, NUM_ATT_CACHE_FIELDS));
 }
 
-stock bool:GetStatementStringForID(Handle:statement, id, String:buf[], size) {
+stock bool GetStatementStringForID(Handle statement, int id, char[] buf, int size) {
 	SQL_BindParamInt(statement, 0, id);
 	SQL_Execute(statement);
 	if(SQL_FetchRow(statement)) {
@@ -595,118 +598,118 @@ stock bool:GetStatementStringForID(Handle:statement, id, String:buf[], size) {
 	}
 	return false;
 }
-public Native_GetAttributeName(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new size = GetNativeCell(3);
-	decl String:buf[size+1];
+public int Native_GetAttributeName(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int size =GetNativeCell(3);
+	char[] buf = new char[size+1];
 	if(GetStatementStringForID(g_statement_GetAttributeName, id, buf, size)) {
 		SetNativeString(2, buf, size);
-		return true;
+		return view_as<int>(true);
 	}
-	return false;
+	return view_as<int>(false);
 }
-public Native_GetAttributeClass(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new size = GetNativeCell(3);
-	decl String:buf[size+1];
+public int Native_GetAttributeClass(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int size =GetNativeCell(3);
+	char[] buf = new char[size+1];
 	if(GetStatementStringForID(g_statement_GetAttributeClass, id, buf, size)) {
 		SetNativeString(2, buf, size);
-		return true;
+		return view_as<int>(true);
 	}
-	return false;
+	return view_as<int>(false);
 }
-public Native_GetAttributeType(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new size = GetNativeCell(3);
-	decl String:buf[size+1];
+public int Native_GetAttributeType(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int size =GetNativeCell(3);
+	char[] buf = new char[size+1];
 	if(GetStatementStringForID(g_statement_GetAttributeType, id, buf, size)) {
 		SetNativeString(2, buf, size);
-		return true;
+		return view_as<int>(true);
 	}
-	return false;
+	return view_as<int>(false);
 }
-public Native_GetAttributeDescString(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new size = GetNativeCell(3);
-	decl String:buf[size+1];
+public int Native_GetAttributeDescString(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int size =GetNativeCell(3);
+	char[] buf = new char[size+1];
 	if(GetStatementStringForID(g_statement_GetAttributeDescString, id, buf, size)) {
 		SetNativeString(2, buf, size);
-		return true;
+		return view_as<int>(true);
 	}
-	return false;
+	return view_as<int>(false);
 }
-public Native_GetAttributeDescFormat(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new size = GetNativeCell(3);
-	decl String:buf[size+1];
+public int Native_GetAttributeDescFormat(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int size =GetNativeCell(3);
+	char[] buf = new char[size+1];
 	if(GetStatementStringForID(g_statement_GetAttributeDescFormat, id, buf, size)) {
 		SetNativeString(2, buf, size);
-		return true;
+		return view_as<int>(true);
 	}
-	return false;
+	return view_as<int>(false);
 }
-public Native_GetAttributeEffectType(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new size = GetNativeCell(3);
-	decl String:buf[size+1];
+public int Native_GetAttributeEffectType(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int size =GetNativeCell(3);
+	char[] buf = new char[size+1];
 	if(GetStatementStringForID(g_statement_GetAttributeEffectType, id, buf, size)) {
 		SetNativeString(2, buf, size);
-		return true;
+		return view_as<int>(true);
 	}
-	return false;
+	return view_as<int>(false);
 }
-public Native_GetAttributeArmoryDesc(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new size = GetNativeCell(3);
-	decl String:buf[size+1];
+public int Native_GetAttributeArmoryDesc(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int size =GetNativeCell(3);
+	char[] buf = new char[size+1];
 	if(GetStatementStringForID(g_statement_GetAttributeArmoryDesc, id, buf, size)) {
 		SetNativeString(2, buf, size);
-		return true;
+		return view_as<int>(true);
 	}
-	return false;
+	return view_as<int>(false);
 }
-public Native_GetAttributeItemTag(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	new size = GetNativeCell(3);
-	decl String:buf[size+1];
+public int Native_GetAttributeItemTag(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	int size =GetNativeCell(3);
+	char[] buf = new char[size+1];
 	if(GetStatementStringForID(g_statement_GetAttributeItemTag, id, buf, size)) {
 		SetNativeString(2, buf, size);
-		return true;
+		return view_as<int>(true);
 	}
-	return false;
+	return view_as<int>(false);
 }
-public Native_GetAttributeProperties(Handle:hPlugin, nParams) {
-	new id = GetNativeCell(1);
-	decl String:strId[16];
+public int Native_GetAttributeProperties(Handle hPlugin, int nParams) {
+	int id = GetNativeCell(1);
+	char strId[16];
 	IntToString(id, strId, sizeof(strId));
-	new values[NUM_ATT_CACHE_FIELDS];
+	int values[NUM_ATT_CACHE_FIELDS];
 	if(GetTrieArray(g_attribute_cache, strId, values, NUM_ATT_CACHE_FIELDS)) {
-		for(new i = 0; i < NUM_ATT_CACHE_FIELDS; i++) {
+		for(int i = 0; i < NUM_ATT_CACHE_FIELDS; i++) {
 			SetNativeCellRef(i+2, values[i]);
 		}
-		return true;
+		return view_as<int>(true);
 	}
-	return false;
+	return view_as<int>(false);
 }
 
-stock TF2ItemQuality:GetQualityByName(const String:strSearch[]) {
+stock TF2ItemQuality GetQualityByName(const char[] strSearch) {
 	if(strlen(strSearch) == 0) {
-		return TF2ItemQuality:-1;
+		return view_as<TF2ItemQuality>(-1);
 	}
-	return TF2ItemQuality:FindStringInArray(g_quality_mappings, strSearch);
+	return view_as<TF2ItemQuality>(FindStringInArray(g_quality_mappings, strSearch));
 }
-public Native_GetQualityByName(Handle:hPlugin, nParams) {
-	decl String:strQualityName[TF2IDB_ITEMQUALITY_LENGTH+1];
+public int Native_GetQualityByName(Handle hPlugin, int nParams) {
+	char strQualityName[TF2IDB_ITEMQUALITY_LENGTH+1];
 	GetNativeString(1, strQualityName, TF2IDB_ITEMQUALITY_LENGTH);
-	return _:GetQualityByName(strQualityName);
+	return view_as<int>(GetQualityByName(strQualityName));
 }
-public Native_GetQualityName(Handle:hPlugin, nParams) {
-	new quality = GetNativeCell(1);
-	new length = GetNativeCell(3);
-	decl String:strQualityName[length+1];
+public int Native_GetQualityName(Handle hPlugin, int nParams) {
+	int quality = GetNativeCell(1);
+	int length = GetNativeCell(3);
+	char[] strQualityName = new char[length+1];
 	if(GetArrayString(g_quality_mappings, quality, strQualityName, length) <= 0) {
-		return false;
+		return view_as<int>(false);
 	}
 	SetNativeString(2, strQualityName, length);
-	return true;
+	return view_as<int>(true);
 }
