@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "0.94.0"
+#define PLUGIN_VERSION "0.94.1"
 
 public Plugin:myinfo = {
 	name		= "TF2IDB",
