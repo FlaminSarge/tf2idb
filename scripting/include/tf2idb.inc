@@ -5,7 +5,7 @@
 
 #include <tf2>
 
-#define TF2IDB_MAX_ATTRIBUTES 			15	/**< Maximum number of attributes an item has */
+#define TF2IDB_MAX_ATTRIBUTES 			20	/**< Maximum number of attributes an item has */
 #define TF2IDB_ITEMCLASS_LENGTH			64	/**< Maximum item class name string length */
 #define TF2IDB_ITEMSLOT_LENGTH			16	/**< Maximum item slot string length */
 #define TF2IDB_ITEMQUALITY_LENGTH		16	/**< Maximum item quality string length */
