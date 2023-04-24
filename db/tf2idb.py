@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-
-TF_FOLDER = 'C:/Program Files (x86)/Steam/steamapps/common/Team Fortress 2/tf/'
-ITEMS_GAME = TF_FOLDER + 'scripts/items/items_game.txt'
-DB_FILE = 'tf2idb.sq3'
+WINDOWS_DEFAULT_TF_FOLDER = 'C:/Program Files (x86)/Steam/steamapps/common/Team Fortress 2/tf/'
+WINDOWS_DEFAULT_MANIFEST = WINDOWS_DEFAULT_TF_FOLDER + 'scripts/items/items_game.txt'
+DEFAULT_DB_FILE = 'tf2idb.sq3'
 
 # 12/18/2015
 
@@ -12,6 +11,8 @@ import traceback
 import time
 import collections
 import copy
+import argparse
+import os
 
 #https://gist.github.com/angstwad/bf22d1822c38a92ec0a9
 def dict_merge(dct, merge_dct):
@@ -46,13 +47,31 @@ def resolve_prefabs(item, prefabs):
     dict_merge(result, item)
     return result, prefab_list
 
-def main():
-    data = None
-    with open(ITEMS_GAME) as f:
-        data = vdf.parse(f)
-        data = data['items_game']
+def optionally(sentinel, **kwarg):
+    """filters key value pairs based on a sentinel value"""
+    return {key: value for key, value in kwarg.items() \
+        if value != sentinel}
 
-    db = sqlite3.connect(DB_FILE)
+def main():
+    parser = argparse.ArgumentParser(
+        description='Builds the tf2idb database.')
+    parser.add_argument('manifest', type=str,
+                        help='Path to the items_game.txt file',
+                        **optionally(None,
+                            default=WINDOWS_DEFAULT_MANIFEST \
+                                if os.name == "nt" else None,
+                            nargs='?' if os.name == 'nt' else None))
+    parser.add_argument('db', type=str,
+                        help='Path to write the generated db',
+                        default=DEFAULT_DB_FILE,
+                        nargs='?')
+    args = parser.parse_args()
+    manifest_name, db_name = args.manifest, args.db
+    data = None
+    with open(manifest_name) as file:
+        data = vdf.parse(file)['items_game']
+
+    db = sqlite3.connect(db_name)
     dbc = db.cursor()
 
     dbc.execute('DROP TABLE IF EXISTS new_tf2idb_class')
